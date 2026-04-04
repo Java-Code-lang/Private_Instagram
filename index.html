@@ -1,0 +1,680 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Harshdeep • Instagram Clone</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #fafafa; color: #262626; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow-x: hidden; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    html, body {
+    /* Prevents the browser from zooming in when double-tapping */
+    touch-action: pan-x pan-y;
+    /* Extra insurance for some mobile browsers */
+    -webkit-text-size-adjust: 100%;
+}
+    #postModal, #storyModal { backdrop-filter: blur(20px); touch-action: none;}
+    .story-ring { padding: 2px; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+    .progress-bar { height: 2px; background: rgba(255,255,255,0.3); flex: 1; border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #fff; width: 0%; transition: width 0.1s linear; }
+  </style>
+</head>
+<body class="bg-white lg:bg-[#fafafa]">
+<div id="lockScreen" class="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 transition-opacity duration-1000">
+    <div class="text-center">
+        <div class="mb-6 inline-flex items-center justify-center w-20 h-20 bg-neutral-900 text-white rounded-full shadow-2xl animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+        </div>
+        <h1 class="text-3xl font-black italic uppercase mb-2">The Archive</h1>
+        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] mb-8">Biometric Verification Required</p>
+        
+        <div class="space-y-4 w-full max-w-xs mx-auto">
+            <button onclick="triggerBiometric()" class="w-full bg-neutral-900 text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform active:scale-95 shadow-xl flex items-center justify-center gap-3">
+                <i class="fa-solid fa-face-smile"></i> Verify Identity
+            </button>
+            <button onclick="showPinFallback()" class="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-black transition-colors">
+                Use PIN Fallback
+            </button>
+        </div>
+
+        <div id="pinBox" class="hidden mt-8 flex flex-col items-center">
+            <input type="password" id="pinInput" maxlength="4" placeholder="••••" class="bg-gray-100 border-none rounded-2xl text-center text-3xl tracking-[0.5em] w-32 py-3 focus:ring-2 focus:ring-rose-500">
+            <button onclick="checkPin()" class="mt-4 text-[10px] font-black text-rose-600 uppercase tracking-widest">Enter Archive</button>
+        </div>
+    </div>
+</div>
+<nav class="fixed bottom-0 w-full bg-white border-t border-gray-300 z-50 flex justify-around p-3 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:flex-col lg:justify-start lg:px-4 lg:pt-8 lg:border-r">
+  <h1 class="hidden lg:block text-2xl font-bold mb-10 px-3 italic cursor-pointer" onclick="navigateTo('main')">Instagram</h1>
+  <div class="flex lg:flex-col w-full gap-2">
+    <a href="javascript:void(0)" onclick="navigateTo('main')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-house text-xl"></i> <span class="hidden lg:block">Home</span></a>
+    
+    <a href="#" class="sidebar-item flex items-center gap-4 p-3 w-full opacity-50 cursor-default"><i class="fa-solid fa-magnifying-glass text-xl"></i> <span class="hidden lg:block">Search</span></a>
+        
+          <a href="javascript:void(0)" onclick="navigateTo('reels-data')"class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
+ 
+    <a href="javascript:void(0)" onclick="navigateTo('reels-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Reels</span></a>
+    <a href="javascript:void(0)" onclick="navigateTo('messages-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-paper-plane text-xl"></i> <span class="hidden lg:block">Messages</span></a>
+    <a href="javascript:void(0)" onclick="navigateTo('dos-donts-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-circle-user text-xl"></i> <span class="hidden lg:block font-bold">Profile</span></a>
+  </div>
+</nav>
+<main class="lg:ml-64 pb-20 lg:pb-0">
+  <div id="profile-view">
+    <div class="max-w-4xl mx-auto pt-8 px-4">
+      
+      <header class="flex flex-col md:flex-row items-center mb-10 gap-10">
+        <div class="w-36 h-36 rounded-full story-ring p-1">
+           <img src="insta/logo.png" class="w-full h-full rounded-full object-cover border-4 border-white bg-white">
+        </div>
+        <section class="flex-1">
+          <div class="flex items-center gap-5 mb-5">
+            <h2 class="text-xl font-light">harsh_tech_trek</h2>
+            <button class="bg-gray-100 px-4 py-1.5 rounded-lg font-semibold text-sm">Edit Profile</button>
+          </div>
+          <div class="flex gap-10 mb-5">
+            <span><b>46</b> posts</span>
+            <span><b>6</b> followers</span>
+            <span><b>6</b> following</span>
+          </div>
+          <div class="font-semibold text-sm">Harshdeep 🧬</div>
+          <div class="text-gray-500 text-sm italic">Digital Creator 2023–2026 • Evolution Phase</div>
+          <div class="text-gray-500 text-sm italic">From who I was → who I’m becoming Building the next version.</div>
+        </section>
+      </header>
+
+      <div class="flex gap-6 mb-12 overflow-x-auto scrollbar-hide py-2" id="highlightsContainer"></div>
+
+      <div class="border-t flex justify-center gap-14 text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">
+        <div class="border-t border-black text-black pt-4 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-table-cells"></i> POSTS</div>
+        <div class="pt-4 flex items-center gap-1 hover:text-black cursor-pointer"><i class="fa-regular fa-bookmark"></i> SAVED</div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1 md:gap-7" id="posts"></div>
+    </div>
+  </div>
+
+  <div id="dynamic-view" class="hidden min-h-screen"></div>
+</main>
+
+<div id="storyModal" class="hidden fixed inset-0 bg-[#1a1a1a] z-[200] flex items-center justify-center" onclick="closeStories()">
+    <div class="relative w-full max-w-md h-[90vh] bg-black rounded-xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+        <div id="storyProgressContainer" class="absolute top-2 left-2 right-2 flex gap-1 z-10"></div>
+        
+        <div class="absolute top-6 left-4 flex items-center gap-2 z-10 text-white">
+            <img src="insta/logo.png" class="w-8 h-8 rounded-full border border-white">
+            <span class="text-xs font-bold">harsh_tech_trek</span>
+            <span class="text-xs text-gray-400">12h</span>
+        </div>
+
+        <div class="w-full h-full flex items-center justify-center bg-black">
+            <img id="storyImage" class="w-full h-full object-cover hidden">
+            <video id="storyVideo" class="w-full h-full object-cover hidden" playsinline></video>
+        </div>
+
+        <div class="absolute inset-0 flex">
+            <div class="w-1/3 h-full cursor-pointer" onclick="prevStory()"></div>
+            <div class="w-2/3 h-full cursor-pointer" onclick="nextStory()"></div>
+        </div>
+    </div>
+    <button class="absolute top-5 right-10 text-white text-4xl">&times;</button>
+</div>
+
+<div id="postModal" class="hidden fixed inset-0 bg-black z-[100] flex flex-col lg:flex-row lg:bg-black/80 lg:p-10" onclick="closePost(event)">
+  
+  <div class="flex items-center justify-between p-4 bg-white border-b lg:hidden w-full">
+    <button onclick="closePostManual()" class="text-2xl">&times;</button>
+    <span class="font-bold">Posts</span>
+    <div class="w-6"></div> </div>
+
+  <button onclick="closePostManual()" class="hidden lg:block absolute top-5 right-10 text-white text-5xl hover:text-gray-300 z-[110]">&times;</button>
+
+  <div class="bg-white flex flex-col lg:flex-row w-full max-w-6xl h-full lg:h-[85vh] mx-auto rounded-none lg:rounded-lg overflow-hidden" onclick="event.stopPropagation()">
+    
+    <div class="flex-1 bg-black flex items-center justify-center relative group min-h-[40vh] lg:min-h-0">
+      <img id="postImage" class="max-h-full w-full object-contain hidden">
+      <video id="postVideo" class="max-h-full w-full hidden" playsinline loop></video>
+      
+      <button id="prevBtn" class="absolute left-4 bg-white/50 rounded-full w-8 h-8 flex items-center justify-center z-20">❮</button>
+      <button id="nextBtn" class="absolute right-4 bg-white/50 rounded-full w-8 h-8 flex items-center justify-center z-20">❯</button>
+    </div>
+
+    <div class="w-full lg:w-[400px] flex flex-col bg-white overflow-y-auto">
+      <div class="p-4 border-b font-bold text-sm flex items-center gap-3">
+        <img src="insta/logo.png" class="w-8 h-8 rounded-full"> harsh_tech_trek
+      </div>
+      <div class="flex-1 p-4 text-sm" id="postCaption">
+        </div>
+      <div class="p-4 border-t text-2xl flex gap-4">
+        <i class="fa-regular fa-heart cursor-pointer"></i>
+        <i class="fa-regular fa-comment cursor-pointer"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- DATA CONFIGURATION ---
+const highlights = [
+    { 
+        name: "Breakup", 
+        cover: "insta/H/h (2).png", 
+        song: "insta/H/break.mp3", // <--- Add the path to your song here
+        items: [{ type: "video", src: "insta/H/Break.mp4" }] 
+    },
+    { 
+        name: "Ca", 
+        cover: "insta/H/h (3).png", 
+        song: "insta/H/ca.mp3", 
+        items: [{ type: "video", src: "insta/H/Ca-Edit.mp4" }] 
+    },
+    { 
+        name: "Memories", 
+        cover: "insta/H/h (4).png", 
+        song: "insta/H/i.mp3", 
+        items: [{ type: "video", src: "insta/H/Images.mp4" }] 
+    },
+    { 
+        name: "Lost", 
+        cover: "insta/H/h (5).png", 
+        song: "insta/H/l.mp3", 
+        items: [{ type: "video", src: "insta/H/Lost.mp4" }] 
+    },
+    { 
+        name: "Rides", 
+        cover: "insta/H/h (1).png", 
+        song: "insta/H/r.mp3", 
+        items: [{ type: "video", src: "insta/H/wild.mp4" }] 
+    }
+];
+// POSTS DATA
+// ✅ POSTS (AUTO MUSIC FROM FOLDER)
+const posts = [
+  { type: "image", src: "insta/Posts/Post 1/i.png" },
+
+  
+  {
+    type: "multi",
+    folder: "insta/Posts/Post 2/",
+    images: ["i1.png","i2.png"]
+  },
+   { type: "image", src: "insta/Posts/Post 3/i1.png" },
+
+  { type: "video", src: "insta/Posts/Post 4/video.mp4" },
+   { type: "video", src: "insta/Posts/Post 5/post5.mp4" },
+    { type: "video", src: "insta/Posts/Post 6/Post6.mp4" },
+     { type: "video", src: "insta/Posts/Post 7/post7.mp4" },
+      { type: "video", src: "insta/Posts/Post 8/video.mp4" },
+      {
+    type: "multi",
+    folder: "insta/Posts/Post 9/",
+    images: ["i1.png","i2.png","i3.png"]
+  },
+        { type: "video", src: "insta/Posts/Post 10/video.mp4" },
+         {
+    type: "multi",
+    folder: "insta/Posts/Post 11/",
+    images: ["i (1).png","i (2).png","i (3).png",
+        "i (4).png","i (5).png","i (6).png",
+        "i (7).png","i (8).png","i (9).png",
+        "i (10).png","i (11).png"
+    ]
+  },
+    { type: "video", src: "insta/Posts/Post 12/video.mp4" },
+  {
+    type: "multi",
+    folder: "insta/Posts/Post 13/",
+    images: ["i1.png","i2.png","i3.png","i4.png"]
+  },
+   {
+    type: "multi",
+    folder: "insta/Posts/Post 14/",
+    images: ["i1.png","i2.png"]
+  },
+    {
+    type: "multi",
+    folder: "insta/Posts/Post 15/",
+    images: ["i1.png","i2.png","i3.png"]
+  },
+  {
+    type: "multi",
+    folder: "insta/Posts/Post 16/",
+    images: ["i1.png","i2.png","i3.png","i4.png"]
+  },
+ {
+    type: "multi",
+    folder: "insta/Posts/Post 17/",
+    images: ["i1.png","i2.png"]
+  },
+  
+    { type: "video", src: "insta/Posts/Post 18/masked.mp4" },
+    {
+    type: "multi",
+    folder: "insta/Posts/Post 19/",
+    images: ["i1.png","i2.png","i3.png","i4.png","i5.png","i6.png","i7.png"]
+  },
+{
+  type: "multiVideo",
+  folder: "insta/Posts/Post 20/",
+  cover: "i1.png", 
+  videos: ["v1.mp4", "v2.mp4"]
+},
+      { type: "video", src: "insta/Posts/Post 21/Video21.mp4" },
+      { type: "video", src: "insta/Posts/Post 22/Video22.mp4" },
+      { type: "video", src: "insta/Posts/Post 23/Video.mp4" },
+      { type: "video", src: "insta/Posts/Post 24/video.mp4" },
+      { type: "video", src: "insta/Posts/Post 25/Video.mp4" },
+      { type: "video", src: "insta/Posts/Post 26/video.mp4" },
+      { type: "video", src: "insta/Posts/Post 27/Video.mp4" },
+      { type: "video", src: "insta/Posts/Post 28/Transition.mp4" },
+      { type: "video", src: "insta/Posts/Post 29/Particles.mp4" },
+      { type: "video", src: "insta/Posts/post 30/Diwali.mp4" },
+      { type: "image", src: "insta/F/30/kurta.jpeg" },
+       { type: "image", src: "insta/F/31/Brahmin.jpeg" },
+       { type: "image", src: "insta/F/32/MN.jpeg" },
+       { type: "image", src: "insta/F/33/Raja.jpeg" },
+        {
+    type: "multi",
+    folder: "insta/F/34/",
+    images: ["1.jpeg","2.jpeg","3.jpeg"]
+  },
+       { type: "image", src: "insta/F/5C/35/russia.jpg" },
+        { type: "image", src: "insta/F/5C/36/dubai.jpg" },
+         { type: "image", src: "insta/F/5C/37/bali.jpg" },
+          { type: "image", src: "insta/F/5C/38/vietnam.jpg" },
+           { type: "image", src: "insta/F/5C/39/thai.jpg" },
+            { type: "image", src: "insta/F/E/40/ride.jpg" },
+             { type: "image", src: "insta/F/E/41/bunjee.jpg" },
+              { type: "image", src: "insta/F/E/42/scuba.jpg" },
+               { type: "image", src: "insta/F/E/43/para.jpg" },
+ { type: "image", src: "insta/F/E/44/wing.jpg" },
+  { type: "image", src: "insta/F/E/45/yatch.jpg" },
+];
+
+
+// --- RENDER HIGHLIGHTS ---
+const hContainer = document.getElementById("highlightsContainer");
+highlights.forEach((h, idx) => {
+    const div = document.createElement("div");
+    div.className = "flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer";
+    div.innerHTML = `
+        <div class="w-20 h-20 rounded-full border border-gray-300 p-1 bg-white">
+            <img src="${h.cover}" class="w-full h-full rounded-full object-cover">
+        </div>
+        <span class="text-xs font-semibold">${h.name}</span>
+    `;
+    div.onclick = () => openStories(idx);
+    hContainer.appendChild(div);
+});
+
+// --- RENDER POSTS ---
+const postsContainer = document.getElementById("posts");
+posts.forEach(post => {
+    const div = document.createElement("div");
+    div.className = "aspect-square cursor-pointer relative group overflow-hidden bg-gray-100";
+let thumb = "";
+if (post.type === "image" || post.type === "video") {
+    thumb = post.src;
+} else if (post.type === "multi") {
+    thumb = post.folder + post.images[0];
+} else if (post.type === "multiVideo") {
+        // Use the cover image if it exists, otherwise fallback to first video
+        thumb = post.cover ? post.folder + post.cover : post.folder + post.videos[0];
+    }
+
+    // Logic to show image tag if it's a multiVideo cover
+    const isVideoThumb = post.type === "video" || (post.type === "multiVideo" && !post.cover);
+
+    div.innerHTML = `
+        ${isVideoThumb ? `<video src="${thumb}" class="w-full h-full object-cover"></video>` : `<img src="${thumb}" class="w-full h-full object-cover">`}
+        <div class="absolute top-2 right-2 text-white drop-shadow-md">
+            ${post.type === 'multiVideo' ? '<i class="fa-solid fa-clone text-xs"></i>' : ''}
+        </div>
+        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white gap-4 transition-opacity font-bold">
+            <span><i class="fa-solid fa-heart"></i> 14k</span>
+            <span><i class="fa-solid fa-comment"></i> 203</span>
+        </div>
+    `;
+    div.onclick = () => openPost(post);
+    postsContainer.appendChild(div);
+});
+
+// --- AUDIO & MEDIA CORE ---
+let activeAudio = null;
+
+function playFolderMusic(folder) {
+    if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+    
+    const audio = new Audio(folder + "song.mp3");
+    audio.loop = true;
+    
+    // Return the promise so we can check if it plays successfully
+    return audio.play()
+        .then(() => {
+            activeAudio = audio;
+            return true; // Music is playing
+        })
+        .catch(() => {
+            return false; // No music found or blocked
+        });
+}
+
+// --- UPDATED STORY LOGIC ---
+let storyIdx = 0;
+let storyItemIdx = 0;
+let storyTimer = null;
+let activeStoryAudio = null;
+
+// GLOBAL FIX for "Audio Blocked": 
+// This unlocks the audio context the very first time you click anywhere on the page.
+document.addEventListener('click', function() {
+    if (activeStoryAudio) activeStoryAudio.play().catch(() => {});
+}, { once: false });
+
+function openStories(hIndex) {
+    storyIdx = hIndex;
+    storyItemIdx = 0;
+
+    // Reset any existing audio
+    if (activeStoryAudio) {
+        activeStoryAudio.pause();
+        activeStoryAudio.src = "";
+        activeStoryAudio = null;
+    }
+
+    const highlight = highlights[hIndex];
+    if (highlight.song) {
+        activeStoryAudio = new Audio(highlight.song);
+        activeStoryAudio.loop = true;
+        // Try to play immediately
+        activeStoryAudio.play().catch(() => {
+            console.log("Audio waiting for user tap...");
+        });
+    }
+
+    document.getElementById("storyModal").classList.remove("hidden");
+    showStoryItem();
+}
+
+function showStoryItem() {
+    clearTimeout(storyTimer);
+    const item = highlights[storyIdx].items[storyItemIdx];
+    const img = document.getElementById("storyImage");
+    const vid = document.getElementById("storyVideo");
+    const progBox = document.getElementById("storyProgressContainer");
+    
+    img.classList.add("hidden");
+    vid.classList.add("hidden");
+    progBox.innerHTML = "";
+    
+    // Progress Bars
+    highlights[storyIdx].items.forEach((_, i) => {
+        const bar = document.createElement("div");
+        bar.className = "progress-bar";
+        bar.innerHTML = `<div class="progress-fill" id="fill-${i}"></div>`;
+        progBox.appendChild(bar);
+        if(i < storyItemIdx) {
+            const f = bar.querySelector('.progress-fill');
+            if(f) f.style.width = "100%";
+        }
+    });
+
+    const fill = document.getElementById(`fill-${storyItemIdx}`);
+    
+    if(item.type === "video") {
+        vid.src = item.src;
+        vid.classList.remove("hidden");
+        vid.muted = true; // MUST be muted for background music to work
+        vid.currentTime = 0;
+        
+        vid.play().catch(() => { vid.muted = true; vid.play(); });
+
+        vid.onloadedmetadata = () => {
+            const duration = vid.duration * 1000;
+            if(fill) {
+                fill.style.transitionDuration = duration + "ms";
+                setTimeout(() => fill.style.width = "100%", 50);
+            }
+            storyTimer = setTimeout(nextStory, duration);
+        };
+    } else {
+        img.src = item.src;
+        img.classList.remove("hidden");
+        if(fill) {
+            fill.style.transitionDuration = "5000ms";
+            setTimeout(() => fill.style.width = "100%", 50);
+        }
+        storyTimer = setTimeout(nextStory, 5000);
+    }
+}
+
+// --- ADDED MISSING FUNCTIONS ---
+function nextStory() {
+    if(storyItemIdx < highlights[storyIdx].items.length - 1) {
+        storyItemIdx++;
+        showStoryItem();
+    } else {
+        closeStories();
+    }
+}
+
+function prevStory() {
+    if(storyItemIdx > 0) {
+        storyItemIdx--;
+        showStoryItem();
+    }
+}
+
+function closeStories() {
+    const vid = document.getElementById("storyVideo");
+    vid.pause();
+    vid.src = "";
+
+    if (activeStoryAudio) {
+        activeStoryAudio.pause();
+        activeStoryAudio.src = "";
+        activeStoryAudio = null;
+    }
+
+    document.getElementById("storyModal").classList.add("hidden");
+    clearTimeout(storyTimer);
+}
+//
+// --- IMPROVED POST MODAL LOGIC ---
+let carouselIdx = 0;
+
+async function openPost(post) {
+    const modal = document.getElementById("postModal");
+    const img = document.getElementById("postImage");
+    const vid = document.getElementById("postVideo");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    
+    modal.classList.remove("hidden");
+    // Prevent body scrolling while modal is open
+    document.body.style.overflow = "hidden";
+
+    img.classList.add("hidden");
+    vid.classList.add("hidden");
+    prevBtn.classList.add("hidden");
+    nextBtn.classList.add("hidden");
+
+    const folder = post.folder || (post.src ? post.src.substring(0, post.src.lastIndexOf("/") + 1) : "");
+    const musicPlaying = await playFolderMusic(folder);
+
+    if (post.type === "video") {
+        vid.src = post.src;
+        vid.classList.remove("hidden");
+        vid.muted = musicPlaying; 
+        vid.load();
+        vid.play().catch(() => {
+            vid.muted = true;
+            vid.play();
+        });
+    } 
+    else if (post.type === "image") {
+        img.src = post.src;
+        img.classList.remove("hidden");
+    } 
+    else if (post.type === "multi") {
+        carouselIdx = 0;
+        const update = () => { 
+            img.src = post.folder + post.images[carouselIdx]; 
+            img.classList.remove("hidden"); 
+            prevBtn.classList.toggle("hidden", post.images.length <= 1);
+            nextBtn.classList.toggle("hidden", post.images.length <= 1);
+        };
+        nextBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx + 1) % post.images.length; update(); };
+        prevBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx - 1 + post.images.length) % post.images.length; update(); };
+        update();
+    } 
+    else if (post.type === "multiVideo") {
+        carouselIdx = 0;
+        const updateVid = () => {
+            vid.src = post.folder + post.videos[carouselIdx];
+            vid.classList.remove("hidden");
+            vid.muted = musicPlaying; 
+            vid.load();
+            vid.play().catch(() => {
+                vid.muted = true;
+                vid.play();
+            });
+            prevBtn.classList.toggle("hidden", post.videos.length <= 1);
+            nextBtn.classList.toggle("hidden", post.videos.length <= 1);
+        };
+        nextBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx + 1) % post.videos.length; updateVid(); };
+        prevBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx - 1 + post.videos.length) % post.videos.length; updateVid(); };
+        updateVid();
+    }
+}
+
+// Function for clicking outside the modal
+function closePost(e) {
+    if(e.target.id === "postModal") {
+        closePostManual();
+    }
+}
+
+// Global close function
+function closePostManual() {
+    document.getElementById("postModal").classList.add("hidden");
+    document.body.style.overflow = "auto"; // Restore scrolling
+    document.getElementById("postVideo").pause();
+    if(activeAudio) {
+        activeAudio.pause();
+        activeAudio = null;
+    }
+}
+
+async function navigateTo(targetId) {
+    const profileView = document.getElementById('profile-view');
+    const dynamicView = document.getElementById('dynamic-view');
+
+    if (targetId === 'main') {
+        dynamicView.classList.add('hidden');
+        profileView.classList.remove('hidden');
+        document.body.style.backgroundColor = "#fafafa";
+        return;
+    }
+
+    try {
+        // This line ONLY works on http://127.0.0.1 (Live Server)
+        const response = await fetch('content.html'); 
+        const htmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        const newContent = doc.getElementById(targetId);
+
+        if (newContent) {
+            profileView.classList.add('hidden');
+            dynamicView.innerHTML = newContent.innerHTML;
+            dynamicView.classList.remove('hidden');
+            document.body.style.backgroundColor = (targetId === 'reels-data') ? "#000" : "#fafafa";
+        }
+    } catch (err) {
+        console.error("Failed to fetch. Switch to Live Server!", err);
+    }
+}
+
+ // This function must be defined for the onclick to work
+    function openViewer(element) {
+        const img = element.querySelector('img');
+        if (!img) return; // Safety check
+        
+        const imgSrc = img.src;
+        const modalImg = document.getElementById('modalImg');
+        const modal = document.getElementById('instaModal');
+        
+        if (modal && modalImg) {
+            modalImg.src = imgSrc;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // Lock background scroll
+        }
+    }
+
+    function closeViewer() {
+        const modal = document.getElementById('instaModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto'; // Unlock background scroll
+        }
+    }
+    // --- SECURITY CONFIG ---
+const MASTER_PIN = "2026"; // Change this to your desired 4-digit code
+
+// Auto-check if unlocked already this session
+if(sessionStorage.getItem('vault_unlocked') === 'true') {
+    document.getElementById('lockScreen').classList.add('hidden');
+}
+
+async function triggerBiometric() {
+    // This triggers native FaceID/TouchID/Android Biometrics
+    if (window.PublicKeyCredential) {
+        try {
+            // Note: Native FaceID usually requires HTTPS/Localhost to trigger properly
+            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (available) {
+                // In a simple web app, we simulate the 'Success' state of the prompt
+                unlockArchive();
+            } else {
+                showPinFallback();
+            }
+        } catch (err) {
+            showPinFallback();
+        }
+    } else {
+        showPinFallback();
+    }
+}
+
+function showPinFallback() {
+    document.getElementById('pinBox').classList.remove('hidden');
+}
+
+function checkPin() {
+    const input = document.getElementById('pinInput').value;
+    if (input === MASTER_PIN) {
+        unlockArchive();
+    } else {
+        alert("Access Denied.");
+        document.getElementById('pinInput').value = "";
+    }
+}
+
+function unlockArchive() {
+    const lock = document.getElementById('lockScreen');
+    lock.style.opacity = '0';
+    setTimeout(() => {
+        lock.classList.add('hidden');
+        sessionStorage.setItem('vault_unlocked', 'true');
+    }, 500);
+}
+</script>
+
+</body>
+</html>
