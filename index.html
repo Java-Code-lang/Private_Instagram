@@ -2,6 +2,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Harsh Archive">
+
+<link rel="apple-touch-icon" href="insta/logo.png">
+
+<link rel="manifest" href="manifest.json">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Harshdeep • Instagram Clone</title>
@@ -23,30 +30,34 @@
   </style>
 </head>
 <body class="bg-white lg:bg-[#fafafa]">
-<div id="lockScreen" class="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 transition-opacity duration-1000">
-    <div class="text-center">
-        <div class="mb-6 inline-flex items-center justify-center w-20 h-20 bg-neutral-900 text-white rounded-full shadow-2xl animate-pulse">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-        </div>
-        <h1 class="text-3xl font-black italic uppercase mb-2">The Archive</h1>
-        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] mb-8">Biometric Verification Required</p>
-        
-        <div class="space-y-4 w-full max-w-xs mx-auto">
-            <button onclick="triggerBiometric()" class="w-full bg-neutral-900 text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform active:scale-95 shadow-xl flex items-center justify-center gap-3">
-                <i class="fa-solid fa-face-smile"></i> Verify Identity
-            </button>
-            <button onclick="showPinFallback()" class="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-black transition-colors">
-                Use PIN Fallback
-            </button>
-        </div>
 
-        <div id="pinBox" class="hidden mt-8 flex flex-col items-center">
-            <input type="password" id="pinInput" maxlength="4" placeholder="••••" class="bg-gray-100 border-none rounded-2xl text-center text-3xl tracking-[0.5em] w-32 py-3 focus:ring-2 focus:ring-rose-500">
-            <button onclick="checkPin()" class="mt-4 text-[10px] font-black text-rose-600 uppercase tracking-widest">Enter Archive</button>
+
+  <div id="lockScreen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center p-8">
+    
+    <div class="text-center mb-12">
+        <div class="w-20 h-20 bg-neutral-900 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <span class="text-white font-black italic text-xl">H</span>
         </div>
+        <h2 class="text-xl font-black italic tracking-tighter uppercase">Harsh Archive</h2>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">Evolution Phase 2023-2026</p>
     </div>
+
+    <div class="w-full max-w-[240px] text-center">
+        <input type="password" id="pinInput" maxlength="4" autofocus
+            class="w-full text-center text-3xl font-black tracking-[0.8em] border-b-2 border-neutral-900 focus:outline-none mb-4 pb-2"
+            placeholder="****">
+        
+        <p id="errorMessage" class="hidden text-[10px] font-black text-rose-600 uppercase mb-4">Access Denied</p>
+
+        <button onclick="checkPin()" 
+            class="w-full bg-neutral-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all">
+            Unlock Vault
+        </button>
+    </div>
+
+    <p class="absolute bottom-10 text-[9px] font-black text-gray-300 uppercase tracking-widest italic">
+        Secured Access Protocol v1.0
+    </p>
 </div>
 <nav class="fixed bottom-0 w-full bg-white border-t border-gray-300 z-50 flex justify-around p-3 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:flex-col lg:justify-start lg:px-4 lg:pt-8 lg:border-r">
   <h1 class="hidden lg:block text-2xl font-bold mb-10 px-3 italic cursor-pointer" onclick="navigateTo('main')">Instagram</h1>
@@ -625,54 +636,50 @@ async function navigateTo(targetId) {
         }
     }
     // --- SECURITY CONFIG ---
-const MASTER_PIN = "2026"; // Change this to your desired 4-digit code
 
-// Auto-check if unlocked already this session
-if(sessionStorage.getItem('vault_unlocked') === 'true') {
-    document.getElementById('lockScreen').classList.add('hidden');
-}
+// --- CONFIG ---
+const MASTER_PIN = "2026"; 
 
-async function triggerBiometric() {
-    // This triggers native FaceID/TouchID/Android Biometrics
-    if (window.PublicKeyCredential) {
-        try {
-            // Note: Native FaceID usually requires HTTPS/Localhost to trigger properly
-            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-            if (available) {
-                // In a simple web app, we simulate the 'Success' state of the prompt
-                unlockArchive();
-            } else {
-                showPinFallback();
-            }
-        } catch (err) {
-            showPinFallback();
-        }
-    } else {
-        showPinFallback();
-    }
-}
-
-function showPinFallback() {
-    document.getElementById('pinBox').classList.remove('hidden');
+// 1. INSTANT CHECK: Run this as soon as the script loads
+if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
+    // If already verified in the past, hide the lock screen immediately
+    document.documentElement.classList.add('unlocked'); 
+    window.onload = () => {
+        document.getElementById('lockScreen').style.display = 'none';
+    };
 }
 
 function checkPin() {
     const input = document.getElementById('pinInput').value;
+    const errorMessage = document.getElementById('errorMessage');
+
     if (input === MASTER_PIN) {
         unlockArchive();
     } else {
-        alert("Access Denied.");
+        errorMessage.classList.remove('hidden');
         document.getElementById('pinInput').value = "";
     }
 }
 
 function unlockArchive() {
     const lock = document.getElementById('lockScreen');
+    
+    // SAVE TO MEMORY: This is the "Don't ask again" part
+    localStorage.setItem('vault_unlocked_permanently', 'true');
+
+    // Smooth transition
     lock.style.opacity = '0';
+    lock.style.transition = 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+    
     setTimeout(() => {
-        lock.classList.add('hidden');
-        sessionStorage.setItem('vault_unlocked', 'true');
-    }, 500);
+        lock.style.display = 'none';
+    }, 600);
+}
+
+// Optional: Function to "Relock" if you want a logout button later
+function lockArchive() {
+    localStorage.removeItem('vault_unlocked_permanently');
+    location.reload();
 }
 </script>
 
