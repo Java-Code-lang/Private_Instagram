@@ -2,13 +2,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Harsh Archive">
 
 <link rel="apple-touch-icon" href="insta/logo.png">
 
-<link rel="manifest" href="manifest.json">
+
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Harshdeep • Instagram Clone</title>
@@ -636,51 +638,35 @@ async function navigateTo(targetId) {
         }
     }
     // --- SECURITY CONFIG ---
-
-// --- CONFIG ---
 const MASTER_PIN = "2026"; 
 
-// 1. INSTANT CHECK: Run this as soon as the script loads
+// CHECK MEMORY IMMEDIATELY
 if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
-    // If already verified in the past, hide the lock screen immediately
-    document.documentElement.classList.add('unlocked'); 
-    window.onload = () => {
-        document.getElementById('lockScreen').style.display = 'none';
-    };
+    // Hide the lock screen instantly before it even renders
+    document.write('<style>#lockScreen { display: none !important; }</style>');
 }
 
 function checkPin() {
     const input = document.getElementById('pinInput').value;
-    const errorMessage = document.getElementById('errorMessage');
-
     if (input === MASTER_PIN) {
+        // Save 'true' to phone memory
+        localStorage.setItem('vault_unlocked_permanently', 'true');
         unlockArchive();
     } else {
-        errorMessage.classList.remove('hidden');
+        alert("Access Denied");
         document.getElementById('pinInput').value = "";
     }
 }
 
 function unlockArchive() {
     const lock = document.getElementById('lockScreen');
-    
-    // SAVE TO MEMORY: This is the "Don't ask again" part
-    localStorage.setItem('vault_unlocked_permanently', 'true');
-
-    // Smooth transition
     lock.style.opacity = '0';
-    lock.style.transition = 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-    
     setTimeout(() => {
         lock.style.display = 'none';
-    }, 600);
+    }, 500);
 }
 
-// Optional: Function to "Relock" if you want a logout button later
-function lockArchive() {
-    localStorage.removeItem('vault_unlocked_permanently');
-    location.reload();
-}
+
 </script>
 
 </body>
