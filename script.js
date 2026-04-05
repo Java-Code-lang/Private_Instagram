@@ -138,21 +138,26 @@ const posts = [
 
 // --- RENDER HIGHLIGHTS ---
 const hContainer = document.getElementById("highlightsContainer");
+
 highlights.forEach((h, idx) => {
     const div = document.createElement("div");
     div.className = "flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer";
+
     div.innerHTML = `
         <div class="w-20 h-20 rounded-full border border-gray-300 p-1 bg-white">
             <img src="${h.cover}" class="w-full h-full rounded-full object-cover">
         </div>
         <span class="text-xs font-semibold">${h.name}</span>
     `;
+
     div.onclick = () => openStories(idx);
     hContainer.appendChild(div);
 });
 
+
 // --- RENDER POSTS ---
 const postsContainer = document.getElementById("posts");
+
 posts.forEach(post => {
     const div = document.createElement("div");
     div.className = "aspect-square cursor-pointer relative group overflow-hidden bg-gray-100";
@@ -170,20 +175,17 @@ posts.forEach(post => {
 
     div.innerHTML = `
         ${isVideoThumb 
-        ? `<video src="${thumb}" class="w-full h-full object-cover" muted autoplay loop playsinline></video>` 
-        : `<img src="${thumb}" class="w-full h-full object-cover">`}
-        
-        <div class="absolute top-2 right-2 text-white drop-shadow-md">
-            ${post.type === 'multiVideo' ? '<i class="fa-solid fa-clone text-xs"></i>' : ''}
-        </div>
+            ? `<video src="${thumb}" class="w-full h-full object-cover" muted playsinline preload="metadata"></video>` 
+            : `<img src="${thumb}" class="w-full h-full object-cover">`
+        }
 
         <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white gap-4 transition-opacity font-bold">
-            <span><i class="fa-solid fa-heart"></i> 14k</span>
-            <span><i class="fa-solid fa-comment"></i> 203</span>
+            <span>❤️ 14k</span>
+            <span>💬 203</span>
         </div>
     `;
 
-    // ✅ DOUBLE TAP LIKE ❤️
+    // ❤️ DOUBLE TAP LIKE
     div.addEventListener("dblclick", () => {
         const heart = document.createElement("div");
         heart.innerHTML = "❤️";
@@ -195,6 +197,26 @@ posts.forEach(post => {
     div.onclick = () => openPost(post);
     postsContainer.appendChild(div);
 });
+
+
+// --- AUTO PLAY / PAUSE (LIKE INSTAGRAM) ---
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        const vid = entry.target;
+        if (entry.isIntersecting) {
+            vid.play().catch(()=>{});
+        } else {
+            vid.pause();
+        }
+    });
+}, { threshold: 0.6 });
+
+function observeVideos() {
+    document.querySelectorAll("video").forEach(v => observer.observe(v));
+}
+
+observeVideos();
+
 
 // --- AUDIO CORE ---
 let activeAudio = null;
@@ -208,16 +230,13 @@ async function playFolderMusic(folder) {
 
         const audio = new Audio(folder + "song.mp3");
         audio.loop = true;
-        audio.preload = "auto";
 
-        await audio.play();
+        await audio.play().catch(() => {});
         activeAudio = audio;
-        return true;
 
-    } catch {
-        return false;
-    }
+    } catch {}
 }
+
 
 // --- STORIES ---
 let storyIdx = 0;
@@ -225,18 +244,11 @@ let storyItemIdx = 0;
 let storyTimer = null;
 let activeStoryAudio = null;
 
-document.addEventListener('click', function() {
-    if (activeStoryAudio) activeStoryAudio.play().catch(() => {});
-}, { once: false });
-
 function openStories(hIndex) {
     storyIdx = hIndex;
     storyItemIdx = 0;
 
-    if (activeStoryAudio) {
-        activeStoryAudio.pause();
-        activeStoryAudio = null;
-    }
+    if (activeStoryAudio) activeStoryAudio.pause();
 
     const highlight = highlights[hIndex];
     if (highlight.song) {
@@ -257,8 +269,7 @@ function showStoryItem() {
     const vid = document.getElementById("storyVideo");
     const progBox = document.getElementById("storyProgressContainer");
 
-    img.classList.add("hidden");
-    vid.classList.add("hidden");
+    // ✅ FIX: CLEAR OLD BARS
     progBox.innerHTML = "";
 
     highlights[storyIdx].items.forEach((_, i) => {
@@ -270,20 +281,23 @@ function showStoryItem() {
 
     const fill = document.getElementById(`fill-${storyItemIdx}`);
 
-    if(item.type === "video") {
+    img.classList.add("hidden");
+    vid.classList.add("hidden");
+
+    if (item.type === "video") {
         vid.src = item.src;
         vid.classList.remove("hidden");
 
-        // ✅ FIXED STORY VIDEO PLAY
         vid.muted = true;
-        vid.playsInline = true;
         vid.currentTime = 0;
-        vid.play().catch(() => {});
+        vid.play().catch(()=>{});
 
         vid.onloadedmetadata = () => {
             const duration = vid.duration * 1000;
+
             fill.style.transitionDuration = duration + "ms";
             setTimeout(() => fill.style.width = "100%", 50);
+
             storyTimer = setTimeout(nextStory, duration);
         };
     } else {
@@ -292,15 +306,26 @@ function showStoryItem() {
 
         fill.style.transitionDuration = "5000ms";
         setTimeout(() => fill.style.width = "100%", 50);
+
         storyTimer = setTimeout(nextStory, 5000);
     }
 }
 
 function nextStory() {
-    if(storyItemIdx < highlights[storyIdx].items.length - 1) {
+    if (storyItemIdx < highlights[storyIdx].items.length - 1) {
         storyItemIdx++;
         showStoryItem();
-    } else closeStories();
+    } else {
+        closeStories();
+    }
+}
+
+// ✅ FIX (WAS MISSING)
+function prevStory() {
+    if (storyItemIdx > 0) {
+        storyItemIdx--;
+        showStoryItem();
+    }
 }
 
 function closeStories() {
@@ -308,14 +333,12 @@ function closeStories() {
     vid.pause();
     vid.src = "";
 
-    if (activeStoryAudio) {
-        activeStoryAudio.pause();
-        activeStoryAudio = null;
-    }
+    if (activeStoryAudio) activeStoryAudio.pause();
 
     document.getElementById("storyModal").classList.add("hidden");
     clearTimeout(storyTimer);
 }
+
 
 // --- POST MODAL ---
 let carouselIdx = 0;
@@ -324,6 +347,8 @@ async function openPost(post) {
     const modal = document.getElementById("postModal");
     const img = document.getElementById("postImage");
     const vid = document.getElementById("postVideo");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
 
     modal.classList.remove("hidden");
     document.body.style.overflow = "hidden";
@@ -331,28 +356,52 @@ async function openPost(post) {
     img.classList.add("hidden");
     vid.classList.add("hidden");
 
-    const folder = post.folder || "";
-    const musicPlaying = await playFolderMusic(folder);
+    const folder = post.folder || (post.src ? post.src.substring(0, post.src.lastIndexOf("/") + 1) : "");
+    await playFolderMusic(folder);
 
     if (post.type === "video") {
         vid.src = post.src;
         vid.classList.remove("hidden");
-
-        // ✅ BIG VIDEO FIX
         vid.muted = true;
-        vid.autoplay = true;
         vid.loop = true;
-        vid.playsInline = true;
+        vid.play().catch(()=>{});
+    }
 
-        vid.play().catch(() => {});
-    } 
     else if (post.type === "image") {
         img.src = post.src;
         img.classList.remove("hidden");
     }
+
+    else if (post.type === "multi") {
+        carouselIdx = 0;
+
+        const update = () => {
+            img.src = post.folder + post.images[carouselIdx];
+            img.classList.remove("hidden");
+        };
+
+        nextBtn.onclick = e => {
+            e.stopPropagation();
+            carouselIdx = (carouselIdx + 1) % post.images.length;
+            update();
+        };
+
+        prevBtn.onclick = e => {
+            e.stopPropagation();
+            carouselIdx = (carouselIdx - 1 + post.images.length) % post.images.length;
+            update();
+        };
+
+        update();
+    }
 }
 
-// ✅ FIX SCROLL FREEZE
+
+// --- CLOSE POST ---
+function closePost(e) {
+    if (e.target.id === "postModal") closePostManual();
+}
+
 function closePostManual() {
     const modal = document.getElementById("postModal");
 
@@ -363,17 +412,61 @@ function closePostManual() {
     vid.pause();
     vid.src = "";
 
-    if (activeAudio) {
-        activeAudio.pause();
-        activeAudio = null;
-    }
+    if (activeAudio) activeAudio.pause();
 }
 
-// --- SECURITY FIX ---
+
+// --- REELS ---
+function openReels() {
+    const container = document.getElementById("reelsContainer");
+    container.innerHTML = "";
+    container.classList.remove("hidden");
+
+    posts.filter(p => p.type === "video").forEach(p => {
+        const reel = document.createElement("div");
+        reel.className = "h-screen snap-start flex items-center justify-center";
+
+        reel.innerHTML = `
+            <video src="${p.src}" 
+                class="h-full w-full object-cover"
+                muted loop playsinline preload="metadata">
+            </video>
+        `;
+
+        container.appendChild(reel);
+    });
+
+    container.querySelectorAll("video").forEach(v => observer.observe(v));
+}
+
+
+// --- SERVICE WORKER ---
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+}
+
+
+// --- TOUCH SWIPE ---
+let startY = 0;
+
+document.addEventListener("touchstart", e => {
+    startY = e.touches[0].clientY;
+});
+
+document.addEventListener("touchend", e => {
+    let endY = e.changedTouches[0].clientY;
+
+    if (startY - endY > 50) nextStory();
+    if (endY - startY > 50) prevStory();
+});
+
+
+// --- SECURITY ---
 const MASTER_PIN = "2026";
 
-// ❌ REMOVED document.write
-
-if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
-    document.getElementById("lockScreen").style.display = "none";
-}
+window.addEventListener("DOMContentLoaded", () => {
+    if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
+        const lock = document.getElementById("lockScreen");
+        if (lock) lock.style.display = "none";
+    }
+});
