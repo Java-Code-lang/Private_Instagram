@@ -74,3 +74,79 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(req))
   );
 });
+const CACHE_NAME = 'insta-ultra-v1';
+
+self.addEventListener('install', e => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+    self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+    const req = event.request;
+
+    // NETWORK FIRST (for API/html)
+    if (req.destination === 'document') {
+        event.respondWith(
+            fetch(req)
+                .then(res => {
+                    const copy = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(req, copy));
+                    return res;
+                })
+                .catch(() => caches.match(req))
+        );
+        return;
+    }
+
+    // CACHE FIRST (images/videos)
+    if (req.destination === 'image' || req.destination === 'video' || req.destination === 'audio') {
+        event.respondWith(
+            caches.match(req).then(cached => {
+                return cached || fetch(req).then(res => {
+                    const copy = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(req, copy));
+                    return res;
+                });
+            })
+        );
+        return;
+    }
+
+    // DEFAULT
+    event.respondWith(fetch(req));
+});
+*/
+
+
+// -----------------------------
+// 🔄 BACKGROUND PRE-CACHE
+// -----------------------------
+
+async function warmCache(mediaList) {
+    if (!('caches' in window)) return;
+
+    const cache = await caches.open('insta-ultra-v1');
+
+    mediaList.forEach(async url => {
+        try {
+            const res = await fetch(url);
+            await cache.put(url, res.clone());
+        } catch {}
+    });
+}
+
+
+// -----------------------------
+// 🧠 INIT ENGINE
+// -----------------------------
+
+window.addEventListener("load", () => {
+    enableGPUAcceleration();
+    applyLazyLoading();
+
+    console.log("🔥 Ultra Engine Ready");
+});
+
