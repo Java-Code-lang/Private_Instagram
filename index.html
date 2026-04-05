@@ -62,7 +62,7 @@
     </p>
 </div>
 <nav class="fixed bottom-0 w-full bg-white border-t border-gray-300 z-50 flex justify-around p-3 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:flex-col lg:justify-start lg:px-4 lg:pt-8 lg:border-r">
-  <h1 class="hidden lg:block text-2xl font-bold mb-10 px-3 italic cursor-pointer" onclick="navigateTo('main')">Instagram</h1>
+  <h1 class="hidden lg:block text-3xl font-semibold mb-10 px-3 tracking-tight cursor-pointer" style="font-family: 'Segoe UI', sans-serif;" cursor-pointer" onclick="navigateTo('main')">Instagram</h1>
   <div class="flex lg:flex-col w-full gap-2">
     <a href="javascript:void(0)" onclick="navigateTo('main')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-house text-xl"></i> <span class="hidden lg:block">Home</span></a>
     
@@ -79,7 +79,7 @@
   <div id="profile-view">
     <div class="max-w-4xl mx-auto pt-8 px-4">
       
-      <header class="flex flex-col md:flex-row items-center mb-10 gap-10">
+     <header class="flex flex-col md:flex-row items-start md:items-center mb-10 gap-10">
         <div class="w-36 h-36 rounded-full story-ring p-1">
            <img src="insta/logo.png" class="w-full h-full rounded-full object-cover border-4 border-white bg-white">
         </div>
@@ -88,14 +88,14 @@
             <h2 class="text-xl font-light">harsh_tech_trek</h2>
             <button class="bg-gray-100 px-4 py-1.5 rounded-lg font-semibold text-sm">Edit Profile</button>
           </div>
-          <div class="flex gap-10 mb-5">
+          <div class="flex gap-6 mb-5 text-sm">
             <span><b>46</b> posts</span>
             <span><b>6</b> followers</span>
             <span><b>6</b> following</span>
           </div>
           <div class="font-semibold text-sm">Harshdeep 🧬</div>
-          <div class="text-gray-500 text-sm italic">Digital Creator 2023–2026 • Evolution Phase</div>
-          <div class="text-gray-500 text-sm italic">From who I was → who I’m becoming Building the next version.</div>
+<div class="text-gray-500 text-sm leading-tight">Digital Creator 2023–2026 • Evolution Phase</div>
+     <div class="text-gray-500 text-sm leading-tight">From who I was → who I’m becoming Building the next version.</div>
         </section>
       </header>
 
@@ -106,7 +106,7 @@
         <div class="pt-4 flex items-center gap-1 hover:text-black cursor-pointer"><i class="fa-regular fa-bookmark"></i> SAVED</div>
       </div>
 
-      <div class="grid grid-cols-3 gap-1 md:gap-7" id="posts"></div>
+     <div class="grid grid-cols-3 gap-[2px] md:gap-6" id="posts"></div>
     </div>
   </div>
 
@@ -307,7 +307,6 @@ const posts = [
   { type: "image", src: "insta/F/E/45/yatch.jpg" },
 ];
 
-
 // --- RENDER HIGHLIGHTS ---
 const hContainer = document.getElementById("highlightsContainer");
 highlights.forEach((h, idx) => {
@@ -328,61 +327,75 @@ const postsContainer = document.getElementById("posts");
 posts.forEach(post => {
     const div = document.createElement("div");
     div.className = "aspect-square cursor-pointer relative group overflow-hidden bg-gray-100";
-let thumb = "";
-if (post.type === "image" || post.type === "video") {
-    thumb = post.src;
-} else if (post.type === "multi") {
-    thumb = post.folder + post.images[0];
-} else if (post.type === "multiVideo") {
-        // Use the cover image if it exists, otherwise fallback to first video
+
+    let thumb = "";
+    if (post.type === "image" || post.type === "video") {
+        thumb = post.src;
+    } else if (post.type === "multi") {
+        thumb = post.folder + post.images[0];
+    } else if (post.type === "multiVideo") {
         thumb = post.cover ? post.folder + post.cover : post.folder + post.videos[0];
     }
 
-    // Logic to show image tag if it's a multiVideo cover
     const isVideoThumb = post.type === "video" || (post.type === "multiVideo" && !post.cover);
 
     div.innerHTML = `
-        ${isVideoThumb ? `<video src="${thumb}" class="w-full h-full object-cover"></video>` : `<img src="${thumb}" class="w-full h-full object-cover">`}
+        ${isVideoThumb 
+        ? `<video src="${thumb}" class="w-full h-full object-cover" muted autoplay loop playsinline></video>` 
+        : `<img src="${thumb}" class="w-full h-full object-cover">`}
+        
         <div class="absolute top-2 right-2 text-white drop-shadow-md">
             ${post.type === 'multiVideo' ? '<i class="fa-solid fa-clone text-xs"></i>' : ''}
         </div>
+
         <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white gap-4 transition-opacity font-bold">
             <span><i class="fa-solid fa-heart"></i> 14k</span>
             <span><i class="fa-solid fa-comment"></i> 203</span>
         </div>
     `;
+
+    // ✅ DOUBLE TAP LIKE ❤️
+    div.addEventListener("dblclick", () => {
+        const heart = document.createElement("div");
+        heart.innerHTML = "❤️";
+        heart.className = "absolute text-5xl animate-ping";
+        div.appendChild(heart);
+        setTimeout(() => heart.remove(), 800);
+    });
+
     div.onclick = () => openPost(post);
     postsContainer.appendChild(div);
 });
 
-// --- AUDIO & MEDIA CORE ---
+// --- AUDIO CORE ---
 let activeAudio = null;
 
-function playFolderMusic(folder) {
-    if (activeAudio) { activeAudio.pause(); activeAudio = null; }
-    
-    const audio = new Audio(folder + "song.mp3");
-    audio.loop = true;
-    
-    // Return the promise so we can check if it plays successfully
-    return audio.play()
-        .then(() => {
-            activeAudio = audio;
-            return true; // Music is playing
-        })
-        .catch(() => {
-            return false; // No music found or blocked
-        });
+async function playFolderMusic(folder) {
+    try {
+        if (activeAudio) {
+            activeAudio.pause();
+            activeAudio = null;
+        }
+
+        const audio = new Audio(folder + "song.mp3");
+        audio.loop = true;
+        audio.preload = "auto";
+
+        await audio.play();
+        activeAudio = audio;
+        return true;
+
+    } catch {
+        return false;
+    }
 }
 
-// --- UPDATED STORY LOGIC ---
+// --- STORIES ---
 let storyIdx = 0;
 let storyItemIdx = 0;
 let storyTimer = null;
 let activeStoryAudio = null;
 
-// GLOBAL FIX for "Audio Blocked": 
-// This unlocks the audio context the very first time you click anywhere on the page.
 document.addEventListener('click', function() {
     if (activeStoryAudio) activeStoryAudio.play().catch(() => {});
 }, { once: false });
@@ -391,10 +404,8 @@ function openStories(hIndex) {
     storyIdx = hIndex;
     storyItemIdx = 0;
 
-    // Reset any existing audio
     if (activeStoryAudio) {
         activeStoryAudio.pause();
-        activeStoryAudio.src = "";
         activeStoryAudio = null;
     }
 
@@ -402,10 +413,7 @@ function openStories(hIndex) {
     if (highlight.song) {
         activeStoryAudio = new Audio(highlight.song);
         activeStoryAudio.loop = true;
-        // Try to play immediately
-        activeStoryAudio.play().catch(() => {
-            console.log("Audio waiting for user tap...");
-        });
+        activeStoryAudio.play().catch(() => {});
     }
 
     document.getElementById("storyModal").classList.remove("hidden");
@@ -414,71 +422,56 @@ function openStories(hIndex) {
 
 function showStoryItem() {
     clearTimeout(storyTimer);
+
     const item = highlights[storyIdx].items[storyItemIdx];
     const img = document.getElementById("storyImage");
     const vid = document.getElementById("storyVideo");
     const progBox = document.getElementById("storyProgressContainer");
-    
+
     img.classList.add("hidden");
     vid.classList.add("hidden");
     progBox.innerHTML = "";
-    
-    // Progress Bars
+
     highlights[storyIdx].items.forEach((_, i) => {
         const bar = document.createElement("div");
         bar.className = "progress-bar";
         bar.innerHTML = `<div class="progress-fill" id="fill-${i}"></div>`;
         progBox.appendChild(bar);
-        if(i < storyItemIdx) {
-            const f = bar.querySelector('.progress-fill');
-            if(f) f.style.width = "100%";
-        }
     });
 
     const fill = document.getElementById(`fill-${storyItemIdx}`);
-    
+
     if(item.type === "video") {
         vid.src = item.src;
         vid.classList.remove("hidden");
-        vid.muted = true; // MUST be muted for background music to work
+
+        // ✅ FIXED STORY VIDEO PLAY
+        vid.muted = true;
+        vid.playsInline = true;
         vid.currentTime = 0;
-        
-        vid.play().catch(() => { vid.muted = true; vid.play(); });
+        vid.play().catch(() => {});
 
         vid.onloadedmetadata = () => {
             const duration = vid.duration * 1000;
-            if(fill) {
-                fill.style.transitionDuration = duration + "ms";
-                setTimeout(() => fill.style.width = "100%", 50);
-            }
+            fill.style.transitionDuration = duration + "ms";
+            setTimeout(() => fill.style.width = "100%", 50);
             storyTimer = setTimeout(nextStory, duration);
         };
     } else {
         img.src = item.src;
         img.classList.remove("hidden");
-        if(fill) {
-            fill.style.transitionDuration = "5000ms";
-            setTimeout(() => fill.style.width = "100%", 50);
-        }
+
+        fill.style.transitionDuration = "5000ms";
+        setTimeout(() => fill.style.width = "100%", 50);
         storyTimer = setTimeout(nextStory, 5000);
     }
 }
 
-// --- ADDED MISSING FUNCTIONS ---
 function nextStory() {
     if(storyItemIdx < highlights[storyIdx].items.length - 1) {
         storyItemIdx++;
         showStoryItem();
-    } else {
-        closeStories();
-    }
-}
-
-function prevStory() {
-    if(storyItemIdx > 0) {
-        storyItemIdx--;
-        showStoryItem();
-    }
+    } else closeStories();
 }
 
 function closeStories() {
@@ -488,259 +481,73 @@ function closeStories() {
 
     if (activeStoryAudio) {
         activeStoryAudio.pause();
-        activeStoryAudio.src = "";
         activeStoryAudio = null;
     }
 
     document.getElementById("storyModal").classList.add("hidden");
     clearTimeout(storyTimer);
 }
-//
-// --- IMPROVED POST MODAL LOGIC ---
+
+// --- POST MODAL ---
 let carouselIdx = 0;
 
 async function openPost(post) {
     const modal = document.getElementById("postModal");
     const img = document.getElementById("postImage");
     const vid = document.getElementById("postVideo");
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    
+
     modal.classList.remove("hidden");
-    // Prevent body scrolling while modal is open
     document.body.style.overflow = "hidden";
 
     img.classList.add("hidden");
     vid.classList.add("hidden");
-    prevBtn.classList.add("hidden");
-    nextBtn.classList.add("hidden");
 
-    const folder = post.folder || (post.src ? post.src.substring(0, post.src.lastIndexOf("/") + 1) : "");
+    const folder = post.folder || "";
     const musicPlaying = await playFolderMusic(folder);
 
     if (post.type === "video") {
         vid.src = post.src;
         vid.classList.remove("hidden");
-        vid.muted = musicPlaying; 
-        vid.load();
-        vid.play().catch(() => {
-            vid.muted = true;
-            vid.play();
-        });
+
+        // ✅ BIG VIDEO FIX
+        vid.muted = true;
+        vid.autoplay = true;
+        vid.loop = true;
+        vid.playsInline = true;
+
+        vid.play().catch(() => {});
     } 
     else if (post.type === "image") {
         img.src = post.src;
         img.classList.remove("hidden");
-    } 
-    else if (post.type === "multi") {
-        carouselIdx = 0;
-        const update = () => { 
-            img.src = post.folder + post.images[carouselIdx]; 
-            img.classList.remove("hidden"); 
-            prevBtn.classList.toggle("hidden", post.images.length <= 1);
-            nextBtn.classList.toggle("hidden", post.images.length <= 1);
-        };
-        nextBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx + 1) % post.images.length; update(); };
-        prevBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx - 1 + post.images.length) % post.images.length; update(); };
-        update();
-    } 
-    else if (post.type === "multiVideo") {
-        carouselIdx = 0;
-        const updateVid = () => {
-            vid.src = post.folder + post.videos[carouselIdx];
-            vid.classList.remove("hidden");
-            vid.muted = musicPlaying; 
-            vid.load();
-            vid.play().catch(() => {
-                vid.muted = true;
-                vid.play();
-            });
-            prevBtn.classList.toggle("hidden", post.videos.length <= 1);
-            nextBtn.classList.toggle("hidden", post.videos.length <= 1);
-        };
-        nextBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx + 1) % post.videos.length; updateVid(); };
-        prevBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx - 1 + post.videos.length) % post.videos.length; updateVid(); };
-        updateVid();
     }
 }
 
-// Function for clicking outside the modal
-function closePost(e) {
-    if(e.target.id === "postModal") {
-        closePostManual();
-    }
-}
-
-// Global close function
+// ✅ FIX SCROLL FREEZE
 function closePostManual() {
-    document.getElementById("postModal").classList.add("hidden");
-    document.body.style.overflow = "auto"; // Restore scrolling
-    document.getElementById("postVideo").pause();
-    if(activeAudio) {
+    const modal = document.getElementById("postModal");
+
+    modal.classList.add("hidden");
+    document.body.style.overflow = "auto";
+
+    const vid = document.getElementById("postVideo");
+    vid.pause();
+    vid.src = "";
+
+    if (activeAudio) {
         activeAudio.pause();
         activeAudio = null;
     }
 }
 
-async function navigateTo(targetId) {
-    const profileView = document.getElementById('profile-view');
-    const dynamicView = document.getElementById('dynamic-view');
+// --- SECURITY FIX ---
+const MASTER_PIN = "2026";
 
-    if (targetId === 'main') {
-        dynamicView.classList.add('hidden');
-        profileView.classList.remove('hidden');
-        document.body.style.backgroundColor = "#fafafa";
-        return;
-    }
+// ❌ REMOVED document.write
 
-    try {
-        // This line ONLY works on http://127.0.0.1 (Live Server)
-        const response = await fetch('content.html'); 
-        const htmlText = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlText, 'text/html');
-        const newContent = doc.getElementById(targetId);
-
-        if (newContent) {
-            profileView.classList.add('hidden');
-            dynamicView.innerHTML = newContent.innerHTML;
-            dynamicView.classList.remove('hidden');
-            document.body.style.backgroundColor = (targetId === 'reels-data') ? "#000" : "#fafafa";
-        }
-    } catch (err) {
-        console.error("Failed to fetch. Switch to Live Server!", err);
-    }
-}
-
- // This function must be defined for the onclick to work
-    function openViewer(element) {
-        const img = element.querySelector('img');
-        if (!img) return; // Safety check
-        
-        const imgSrc = img.src;
-        const modalImg = document.getElementById('modalImg');
-        const modal = document.getElementById('instaModal');
-        
-        if (modal && modalImg) {
-            modalImg.src = imgSrc;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden'; // Lock background scroll
-        }
-    }
-
-    function closeViewer() {
-        const modal = document.getElementById('instaModal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.style.overflow = 'auto'; // Unlock background scroll
-        }
-    }
-    // --- SECURITY CONFIG ---
-const MASTER_PIN = "2026"; 
-
-// CHECK MEMORY IMMEDIATELY
 if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
-    // Hide the lock screen instantly before it even renders
-    document.write('<style>#lockScreen { display: none !important; }</style>');
+    document.getElementById("lockScreen").style.display = "none";
 }
-
-function checkPin() {
-    const input = document.getElementById('pinInput').value;
-    if (input === MASTER_PIN) {
-        // Save 'true' to phone memory
-        localStorage.setItem('vault_unlocked_permanently', 'true');
-        unlockArchive();
-    } else {
-        alert("Access Denied");
-        document.getElementById('pinInput').value = "";
-    }
-}
-
-function unlockArchive() {
-    const lock = document.getElementById('lockScreen');
-    lock.style.opacity = '0';
-    setTimeout(() => {
-        lock.style.display = 'none';
-    }, 500);
-}
-// 1. REGISTER THE SERVICE WORKER
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log('Archive: Offline Protocol Active'))
-            .catch(err => console.log('Archive: SW Failed', err));
-    });
-}
-
-// 2. SMART PRELOADER (Images & Videos)
-function preloadArchiveMedia() {
-    posts.forEach(post => {
-        // Preload Images
-        if (post.type === "image") {
-            const img = new Image();
-            img.src = post.src;
-        } 
-        // Preload Carousel Images
-        else if (post.type === "multi") {
-            post.images.forEach(imgName => {
-                const img = new Image();
-                img.src = post.folder + imgName;
-            });
-        }
-        // Preload Videos (Using prefetch links)
-        else if (post.type === "video" || post.type === "multiVideo") {
-            const videoUrls = post.type === "video" ? [post.src] : post.videos.map(v => post.folder + v);
-            videoUrls.forEach(url => {
-                const link = document.createElement('link');
-                link.rel = 'prefetch';
-                link.as = 'video';
-                link.href = url;
-                document.head.appendChild(link);
-            });
-        }
-    });
-    
-    // Preload Highlight Covers
-    highlights.forEach(h => {
-        const img = new Image();
-        img.src = h.cover;
-    });
-}
-
-// Run preloader after 2 seconds to ensure PIN screen is smooth first
-window.addEventListener('load', () => {
-    setTimeout(preloadArchiveMedia, 2000);
-});
-
-// 3. AUTO-UNLOCK LOGIC
-if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
-    // Add CSS immediately to hide the lock screen
-    const style = document.createElement('style');
-    style.innerHTML = "#lockScreen { display: none !important; }";
-    document.head.appendChild(style);
-    document.body.style.overflow = "auto";
-}
-// FORCE PRELOAD ALL SONGS AND VIDEOS INTO CACHE
-window.addEventListener('load', () => {
-    const mediaToSave = [];
-    
-    // Collect songs from highlights
-    highlights.forEach(h => { if(h.song) mediaToSave.push(h.song); });
-    
-    // Collect folder-based songs for posts (Post 1 to 30)
-    for(let i=1; i<=30; i++) {
-        mediaToSave.push(`insta/Posts/Post ${i}/song.mp3`);
-    }
-
-    // Trigger a hidden fetch for each to "force" the Service Worker to cache them
-    mediaToSave.forEach(url => {
-        fetch(url, { mode: 'no-cors' }).catch(e => console.log("Pre-fetch idle"));
-    });
-    
-    console.log("Archive: Background sync for songs started...");
-});
 </script>
 
 </body>
