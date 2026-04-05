@@ -722,7 +722,25 @@ if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
     document.head.appendChild(style);
     document.body.style.overflow = "auto";
 }
+// FORCE PRELOAD ALL SONGS AND VIDEOS INTO CACHE
+window.addEventListener('load', () => {
+    const mediaToSave = [];
+    
+    // Collect songs from highlights
+    highlights.forEach(h => { if(h.song) mediaToSave.push(h.song); });
+    
+    // Collect folder-based songs for posts (Post 1 to 30)
+    for(let i=1; i<=30; i++) {
+        mediaToSave.push(`insta/Posts/Post ${i}/song.mp3`);
+    }
 
+    // Trigger a hidden fetch for each to "force" the Service Worker to cache them
+    mediaToSave.forEach(url => {
+        fetch(url, { mode: 'no-cors' }).catch(e => console.log("Pre-fetch idle"));
+    });
+    
+    console.log("Archive: Background sync for songs started...");
+});
 </script>
 
 </body>
