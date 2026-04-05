@@ -461,12 +461,4 @@ document.addEventListener("touchend", e => {
 });
 
 
-// --- SECURITY ---
-const MASTER_PIN = "2026";
 
-window.addEventListener("DOMContentLoaded", () => {
-    if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
-        const lock = document.getElementById("lockScreen");
-        if (lock) lock.style.display = "none";
-    }
-});
