@@ -23,30 +23,31 @@
   </style>
 </head>
 <body class="bg-white lg:bg-[#fafafa]">
-<div id="lockScreen" class="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 transition-opacity duration-1000">
-    <div class="text-center">
-        <div class="mb-6 inline-flex items-center justify-center w-20 h-20 bg-neutral-900 text-white rounded-full shadow-2xl animate-pulse">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-        </div>
-        <h1 class="text-3xl font-black italic uppercase mb-2">The Archive</h1>
-        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.5em] mb-8">Biometric Verification Required</p>
-        
-        <div class="space-y-4 w-full max-w-xs mx-auto">
-            <button onclick="triggerBiometric()" class="w-full bg-neutral-900 text-white px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition-transform active:scale-95 shadow-xl flex items-center justify-center gap-3">
-                <i class="fa-solid fa-face-smile"></i> Verify Identity
-            </button>
-            <button onclick="showPinFallback()" class="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-black transition-colors">
-                Use PIN Fallback
-            </button>
-        </div>
 
-        <div id="pinBox" class="hidden mt-8 flex flex-col items-center">
-            <input type="password" id="pinInput" maxlength="4" placeholder="••••" class="bg-gray-100 border-none rounded-2xl text-center text-3xl tracking-[0.5em] w-32 py-3 focus:ring-2 focus:ring-rose-500">
-            <button onclick="checkPin()" class="mt-4 text-[10px] font-black text-rose-600 uppercase tracking-widest">Enter Archive</button>
-        </div>
+<!-- Lock Screen - Only PIN -->
+<div id="lockScreen" class="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-6 transition-opacity duration-1000">
+  <div class="text-center">
+    <div class="mb-8 inline-flex items-center justify-center w-20 h-20 bg-neutral-900 text-white rounded-full shadow-2xl">
+      <i class="fa-solid fa-lock text-4xl"></i>
     </div>
+    <h1 class="text-3xl font-black italic uppercase mb-2">The Archive</h1>
+    <p class="text-sm text-gray-500 mb-8">Enter Security PIN to continue</p>
+    
+    <div class="space-y-6 w-full max-w-xs mx-auto">
+      <input 
+        type="password" 
+        id="pinInput" 
+        maxlength="4" 
+        placeholder="••••" 
+        class="bg-gray-100 border-none rounded-2xl text-center text-4xl tracking-[0.5em] w-40 py-4 focus:ring-2 focus:ring-rose-500 outline-none"
+        autofocus>
+      
+      <button onclick="checkPin()" 
+              class="w-full bg-neutral-900 text-white py-4 rounded-full font-black text-sm uppercase tracking-widest hover:scale-105 transition-transform active:scale-95">
+        Unlock Archive
+      </button>
+    </div>
+  </div>
 </div>
 <nav class="fixed bottom-0 w-full bg-white border-t border-gray-300 z-50 flex justify-around p-3 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:flex-col lg:justify-start lg:px-4 lg:pt-8 lg:border-r">
   <h1 class="hidden lg:block text-2xl font-bold mb-10 px-3 italic cursor-pointer" onclick="navigateTo('main')">Instagram</h1>
@@ -633,88 +634,39 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// --- UPDATED BIOMETRIC SIMULATION ---
-// Note: Real WebAuthn requires a secure context (HTTPS)
-async function triggerBiometric() {
-    const btn = event.currentTarget;
-    btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Scanning...';
-    
-    // Simulating the processing time for FaceID/TouchID
-    setTimeout(() => {
-        if (window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
-            unlockArchive();
-        } else {
-            // Fallback for non-secure local testing
-            unlockArchive(); 
-            console.warn("Biometrics usually require HTTPS. Simulating success.");
-        }
-    }, 1500);
+
+// ==================== PIN SECURITY (One-time only) ====================
+const MASTER_PIN = "2026";   // ← Change this to your desired PIN
+
+// Check if already unlocked before
+if (localStorage.getItem('archive_unlocked') === 'true') {
+  document.getElementById('lockScreen').classList.add('hidden');
 }
 
-// --- PIN CHECK IMPROVEMENT ---
-function checkPin() {
-    const input = document.getElementById('pinInput').value;
-    const pinBox = document.getElementById('pinBox');
-    
-    if (input === MASTER_PIN) {
-        unlockArchive();
-    } else {
-        pinBox.classList.add('animate-shake'); // Optional: Add a shake CSS animation
-        alert("Access Denied.");
-        document.getElementById('pinInput').value = "";
-        setTimeout(() => pinBox.classList.remove('animate-shake'), 500);
-    }
-}
-    // --- SECURITY CONFIG ---
-const MASTER_PIN = "2026"; // Change this to your desired 4-digit code
-
-// Auto-check if unlocked already this session
-if(sessionStorage.getItem('vault_unlocked') === 'true') {
-    document.getElementById('lockScreen').classList.add('hidden');
-}
-
-async function triggerBiometric() {
-    // This triggers native FaceID/TouchID/Android Biometrics
-    if (window.PublicKeyCredential) {
-        try {
-            // Note: Native FaceID usually requires HTTPS/Localhost to trigger properly
-            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-            if (available) {
-                // In a simple web app, we simulate the 'Success' state of the prompt
-                unlockArchive();
-            } else {
-                showPinFallback();
-            }
-        } catch (err) {
-            showPinFallback();
-        }
-    } else {
-        showPinFallback();
-    }
-}
-
-function showPinFallback() {
-    document.getElementById('pinBox').classList.remove('hidden');
-}
-
-function checkPin() {
-    const input = document.getElementById('pinInput').value;
-    if (input === MASTER_PIN) {
-        unlockArchive();
-    } else {
-        alert("Access Denied.");
-        document.getElementById('pinInput').value = "";
-    }
-}
-
+// Unlock function
 function unlockArchive() {
-    const lock = document.getElementById('lockScreen');
-    lock.style.opacity = '0';
-    setTimeout(() => {
-        lock.classList.add('hidden');
-        sessionStorage.setItem('vault_unlocked', 'true');
-    }, 500);
+  document.getElementById('lockScreen').style.opacity = '0';
+  setTimeout(() => {
+    document.getElementById('lockScreen').classList.add('hidden');
+    localStorage.setItem('archive_unlocked', 'true');   // Save permanently
+  }, 500);
 }
+
+// Check PIN
+function checkPin() {
+  const input = document.getElementById('pinInput').value.trim();
+  const pinBox = document.getElementById('pinInput');
+
+  if (input === MASTER_PIN) {
+    unlockArchive();
+  } else {
+    pinBox.classList.add('animate-shake');
+    alert("Incorrect PIN. Try again.");
+    document.getElementById('pinInput').value = "";
+    setTimeout(() => pinBox.classList.remove('animate-shake'), 600);
+  }
+}
+
 </script>
 
 </body>
