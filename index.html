@@ -680,12 +680,23 @@ function checkPin() {
   }
 }
 
-  // === SERVICE WORKER REGISTRATION ===
+// === CORRECT SERVICE WORKER REGISTRATION ===
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/worker.js')
-      .then(() => console.log('✅ Service Worker registered - Media caching enabled'))
-      .catch(err => console.log('Service Worker registration failed:', err));
+    // Use the exact name you created
+    const swFile = '/Private_Instagram/worker.js';   // Change to /Private_Instagram/worker.js if you kept that name
+
+    fetch(swFile, { method: 'HEAD' })
+      .then(response => {
+        if (response.ok) {
+          navigator.serviceWorker.register(swFile)
+            .then(() => console.log('✅ Service Worker registered successfully'))
+            .catch(err => console.log('Service Worker registration failed:', err));
+        } else {
+          console.log('sw.js not found at root → skipping registration');
+        }
+      })
+      .catch(() => console.log('Service Worker file not found'));
   });
 }
 
