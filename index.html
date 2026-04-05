@@ -646,23 +646,7 @@ async function navigateTo(targetId) {
             document.body.style.overflow = 'auto'; // Unlock background scroll
         }
     }
-// Safe Service Worker registration (prevents 404 spam)
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      // Only try to register if sw.js actually exists
-      fetch('/sw.js', { method: 'HEAD' })
-        .then(response => {
-          if (response.ok) {
-            navigator.serviceWorker.register('/sw.js')
-              .then(() => console.log('✅ Service Worker registered'))
-              .catch(err => console.log('SW registration failed:', err));
-          } else {
-            console.log('sw.js not found → skipping registration (normal on GitHub Pages)');
-          }
-        })
-        .catch(() => console.log('sw.js not found → skipping registration'));
-    });
-  }
+
 
 // ==================== PIN SECURITY (One-time only) ====================
 const MASTER_PIN = "2026";   // ← Change this to your desired PIN
