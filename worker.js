@@ -1,22 +1,23 @@
-// sw.js - Service Worker for Instagram Clone (Caching images, videos, audio)
+// worker.js - Fixed & Improved for your Instagram Clone
 
-const CACHE_NAME = 'harsh-insta-v3';
+const CACHE_NAME = 'harsh-insta';
 
 const STATIC_CACHE = [
   '/',
   '/index.html'
 ];
 
-// Install - Cache basic files
+// Install
 self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => cache.addAll(STATIC_CACHE))
+            .catch(err => console.warn('Static cache warning:', err))
     );
 });
 
-// Activate - Clean old caches
+// Activate - Clean old versions
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then(keys => {
@@ -30,23 +31,27 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch - Cache First for media (Instagram style)
+// Main Fetch Logic - Cache First for Media
 self.addEventListener('fetch', (event) => {
     const req = event.request;
 
     if (req.method !== 'GET') return;
 
-    // Cache-First for images, videos, and audio
+    // Cache-First for all images, videos, and audio (this is what stores your media)
     if (['image', 'video', 'audio'].includes(req.destination)) {
         event.respondWith(
             caches.match(req).then(cached => {
-                return cached || fetch(req).then(res => {
+                // Return from cache if available (fast + offline)
+                if (cached) return cached;
+
+                // Otherwise fetch from network and cache it
+                return fetch(req).then(res => {
                     if (!res || res.status !== 200) return res;
 
                     const copy = res.clone();
                     caches.open(CACHE_NAME).then(cache => {
                         cache.put(req, copy);
-                        limitCacheSize(cache, 150);   // Limit to ~150 media files
+                        limitCacheSize(cache, 200);   // Increased limit
                     });
                     return res;
                 });
@@ -55,7 +60,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Network-First for HTML
+    // For HTML - try network first, fallback to cache
     if (req.destination === 'document') {
         event.respondWith(
             fetch(req)
@@ -69,21 +74,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Stale-While-Revalidate for other files
+    // Default for other files
     event.respondWith(
-        caches.match(req).then(cached => {
-            const fetchPromise = fetch(req).then(res => {
-                if (res && res.status === 200) {
-                    caches.open(CACHE_NAME).then(c => c.put(req, res.clone()));
-                }
-                return res;
-            });
-            return cached || fetchPromise;
-        })
+        caches.match(req).then(cached => cached || fetch(req))
     );
 });
 
-// Limit cache size to prevent storage overflow
+// Helper: Prevent cache from growing too big
 async function limitCacheSize(cache, maxItems) {
     const keys = await cache.keys();
     if (keys.length > maxItems) {
