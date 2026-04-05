@@ -665,27 +665,39 @@ function unlockArchive() {
         lock.style.display = 'none';
     }, 500);
 }
-
-  // --- SERVICE WORKER REGISTRATION ---
+// 1. REGISTER THE SERVICE WORKER
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Archive: Offline Protocol Active'))
+            .then(() => console.log('Archive: Offline Protocol Active'))
             .catch(err => console.log('Archive: SW Failed', err));
     });
 }
 
-// --- SMART IMAGE PRELOADER ---
-// This runs in the background to cache all images before the user scrolls to them
+// 2. SMART PRELOADER (Images & Videos)
 function preloadArchiveMedia() {
     posts.forEach(post => {
+        // Preload Images
         if (post.type === "image") {
             const img = new Image();
             img.src = post.src;
-        } else if (post.type === "multi") {
+        } 
+        // Preload Carousel Images
+        else if (post.type === "multi") {
             post.images.forEach(imgName => {
                 const img = new Image();
                 img.src = post.folder + imgName;
+            });
+        }
+        // Preload Videos (Using prefetch links)
+        else if (post.type === "video" || post.type === "multiVideo") {
+            const videoUrls = post.type === "video" ? [post.src] : post.videos.map(v => post.folder + v);
+            videoUrls.forEach(url => {
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.as = 'video';
+                link.href = url;
+                document.head.appendChild(link);
             });
         }
     });
@@ -697,27 +709,18 @@ function preloadArchiveMedia() {
     });
 }
 
-// Start preloading after the main page is ready
-window.addEventListener('DOMContentLoaded', preloadArchiveMedia);
+// Run preloader after 2 seconds to ensure PIN screen is smooth first
+window.addEventListener('load', () => {
+    setTimeout(preloadArchiveMedia, 2000);
+});
 
-// --- UPDATED UNLOCK LOGIC ---
-// Ensure the background color and scrolling are handled correctly upon unlock
-function unlockArchive() {
-    const lock = document.getElementById('lockScreen');
-    lock.style.transition = "opacity 0.5s ease";
-    lock.style.opacity = '0';
-    document.body.style.overflow = "auto";
-    setTimeout(() => {
-        lock.style.display = 'none';
-    }, 500);
-}
-
-// Add this to your existing checkPin function to ensure smooth entry
+// 3. AUTO-UNLOCK LOGIC
 if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('lockScreen').style.display = 'none';
-        document.body.style.overflow = "auto";
-    });
+    // Add CSS immediately to hide the lock screen
+    const style = document.createElement('style');
+    style.innerHTML = "#lockScreen { display: none !important; }";
+    document.head.appendChild(style);
+    document.body.style.overflow = "auto";
 }
 
 </script>
