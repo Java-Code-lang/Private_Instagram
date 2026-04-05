@@ -16,6 +16,34 @@
   <title>Harshdeep • Instagram Clone</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- ✅ SCRIPT -->
+<script src="script.js"></script>
+
+<!-- ✅ BASIC FUNCTIONS -->
+<script>
+const MASTER_PIN = "2026";
+
+function checkPin() {
+  const input = document.getElementById("pinInput").value;
+  if (input === MASTER_PIN) {
+    document.getElementById("lockScreen").style.display = "none";
+    localStorage.setItem("vault_unlocked_permanently", "true");
+  } else {
+    document.getElementById("errorMessage").classList.remove("hidden");
+  }
+}
+
+function navigateTo(view) {
+  window.scrollTo(0,0);
+}
+</script>
+
+<!-- ✅ SERVICE WORKER -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
@@ -122,34 +150,7 @@
   </div>
 </div>
 
-<!-- ✅ SCRIPT -->
-<script src="script.js"></script>
 
-<!-- ✅ BASIC FUNCTIONS -->
-<script>
-const MASTER_PIN = "2026";
-
-function checkPin() {
-  const input = document.getElementById("pinInput").value;
-  if (input === MASTER_PIN) {
-    document.getElementById("lockScreen").style.display = "none";
-    localStorage.setItem("vault_unlocked_permanently", "true");
-  } else {
-    document.getElementById("errorMessage").classList.remove("hidden");
-  }
-}
-
-function navigateTo(view) {
-  window.scrollTo(0,0);
-}
-</script>
-
-<!-- ✅ SERVICE WORKER -->
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
-}
-</script>
 
 </body>
 </html>
