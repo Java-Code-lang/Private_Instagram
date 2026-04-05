@@ -1,175 +1,155 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <link rel="preconnect" href="." crossorigin>
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Harsh Archive">
 
-<link rel="apple-touch-icon" href="insta/logo.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Harsh Archive">
 
-
+  <link rel="apple-touch-icon" href="insta/logo.png">
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
   <title>Harshdeep • Instagram Clone</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
   <style>
     body { background-color: #fafafa; color: #262626; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow-x: hidden; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
+
     html, body {
-    /* Prevents the browser from zooming in when double-tapping */
-    touch-action: pan-x pan-y;
-    /* Extra insurance for some mobile browsers */
-    -webkit-text-size-adjust: 100%;
-}
+      touch-action: pan-x pan-y;
+      -webkit-text-size-adjust: 100%;
+    }
+
     #postModal, #storyModal { backdrop-filter: blur(20px); touch-action: none;}
-    .story-ring { padding: 2px; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+
+    .story-ring {
+      padding: 2px;
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    }
+
     .progress-bar { height: 2px; background: rgba(255,255,255,0.3); flex: 1; border-radius: 10px; overflow: hidden; }
     .progress-fill { height: 100%; background: #fff; width: 0%; transition: width 0.1s linear; }
   </style>
 </head>
+
 <body class="bg-white lg:bg-[#fafafa]">
 
+<!-- 🔐 LOCK SCREEN -->
+<div id="lockScreen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center p-8">
+  <input type="password" id="pinInput" maxlength="4" placeholder="****"
+    class="text-center text-3xl border-b mb-4">
+  
+  <p id="errorMessage" class="hidden text-red-500 text-xs mb-4">Access Denied</p>
 
-  <div id="lockScreen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center p-8">
-    
-    <div class="text-center mb-12">
-        <div class="w-20 h-20 bg-neutral-900 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <span class="text-white font-black italic text-xl">H</span>
-        </div>
-        <h2 class="text-xl font-black italic tracking-tighter uppercase">Harsh Archive</h2>
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">Evolution Phase 2023-2026</p>
-    </div>
-
-    <div class="w-full max-w-[240px] text-center">
-        <input type="password" id="pinInput" maxlength="4" autofocus
-            class="w-full text-center text-3xl font-black tracking-[0.8em] border-b-2 border-neutral-900 focus:outline-none mb-4 pb-2"
-            placeholder="****">
-        
-        <p id="errorMessage" class="hidden text-[10px] font-black text-rose-600 uppercase mb-4">Access Denied</p>
-
-        <button onclick="checkPin()" 
-            class="w-full bg-neutral-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs active:scale-95 transition-all">
-            Unlock Vault
-        </button>
-    </div>
-
-    <p class="absolute bottom-10 text-[9px] font-black text-gray-300 uppercase tracking-widest italic">
-        Secured Access Protocol v1.0
-    </p>
+  <button onclick="checkPin()" class="bg-black text-white px-6 py-3 rounded-xl">
+    Unlock
+  </button>
 </div>
-<nav class="fixed bottom-0 w-full bg-white border-t border-gray-300 z-50 flex justify-around p-3 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:flex-col lg:justify-start lg:px-4 lg:pt-8 lg:border-r">
-  <h1 class="hidden lg:block text-3xl font-semibold mb-10 px-3 tracking-tight cursor-pointer" style="font-family: 'Segoe UI', sans-serif;" cursor-pointer" onclick="navigateTo('main')">Instagram</h1>
-  <div class="flex lg:flex-col w-full gap-2">
-    <a href="javascript:void(0)" onclick="navigateTo('main')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-house text-xl"></i> <span class="hidden lg:block">Home</span></a>
-    
-    <a href="#" class="sidebar-item flex items-center gap-4 p-3 w-full opacity-50 cursor-default"><i class="fa-solid fa-magnifying-glass text-xl"></i> <span class="hidden lg:block">Search</span></a>
-        
-          <a href="javascript:void(0)" onclick="navigateTo('reels-data')"class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
- 
-    <a href="javascript:void(0)" onclick="navigateTo('reels-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Reels</span></a>
-    <a href="javascript:void(0)" onclick="navigateTo('messages-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-paper-plane text-xl"></i> <span class="hidden lg:block">Messages</span></a>
-    <a href="javascript:void(0)" onclick="navigateTo('dos-donts-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-circle-user text-xl"></i> <span class="hidden lg:block font-bold">Profile</span></a>
-  </div>
+
+<!-- NAV -->
+<nav class="fixed bottom-0 w-full bg-white border-t flex justify-around p-3 z-50 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:flex-col lg:border-r">
+  
+  <h1 class="hidden lg:block text-2xl mb-6 px-3 cursor-pointer" onclick="navigateTo('main')">
+    Instagram
+  </h1>
+
+  <a href="javascript:void(0)" onclick="navigateTo('main')"><i class="fa-solid fa-house"></i></a>
+  <a href="#"><i class="fa-solid fa-magnifying-glass opacity-50"></i></a>
+  <a href="javascript:void(0)" onclick="openReels()"><i class="fa-solid fa-clapperboard"></i></a>
+  <a href="#"><i class="fa-regular fa-paper-plane"></i></a>
+  <a href="javascript:void(0)" onclick="navigateTo('profile')"><i class="fa-solid fa-user"></i></a>
+
 </nav>
-<main class="lg:ml-64 pb-20 lg:pb-0">
-  <div id="profile-view">
-    <div class="max-w-4xl mx-auto pt-8 px-4">
-      
-     <header class="flex flex-col md:flex-row items-start md:items-center mb-10 gap-10">
-        <div class="w-36 h-36 rounded-full story-ring p-1">
-           <img src="insta/logo.png" class="w-full h-full rounded-full object-cover border-4 border-white bg-white">
-        </div>
-        <section class="flex-1">
-          <div class="flex items-center gap-5 mb-5">
-            <h2 class="text-xl font-light">harsh_tech_trek</h2>
-            <button class="bg-gray-100 px-4 py-1.5 rounded-lg font-semibold text-sm">Edit Profile</button>
-          </div>
-          <div class="flex gap-6 mb-5 text-sm">
-            <span><b>46</b> posts</span>
-            <span><b>6</b> followers</span>
-            <span><b>6</b> following</span>
-          </div>
-          <div class="font-semibold text-sm">Harshdeep 🧬</div>
-<div class="text-gray-500 text-sm leading-tight">Digital Creator 2023–2026 • Evolution Phase</div>
-     <div class="text-gray-500 text-sm leading-tight">From who I was → who I’m becoming Building the next version.</div>
-        </section>
-      </header>
 
-      <div class="flex gap-6 mb-12 overflow-x-auto scrollbar-hide py-2" id="highlightsContainer"></div>
+<!-- MAIN -->
+<main class="lg:ml-64 pb-20">
 
-      <div class="border-t flex justify-center gap-14 text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">
-        <div class="border-t border-black text-black pt-4 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-table-cells"></i> POSTS</div>
-        <div class="pt-4 flex items-center gap-1 hover:text-black cursor-pointer"><i class="fa-regular fa-bookmark"></i> SAVED</div>
+  <div class="max-w-4xl mx-auto pt-8 px-4">
+
+    <!-- PROFILE -->
+    <header class="flex gap-8 mb-10">
+      <div class="w-24 h-24 rounded-full story-ring p-1">
+        <img src="insta/logo.png" class="rounded-full">
       </div>
 
-     <div class="grid grid-cols-3 gap-[2px] md:gap-6" id="posts"></div>
-    </div>
-  </div>
+      <div>
+        <h2 class="text-xl">harsh_tech_trek</h2>
+        <p class="text-sm text-gray-500">Digital Creator</p>
+      </div>
+    </header>
 
-  <div id="dynamic-view" class="hidden min-h-screen"></div>
+    <!-- HIGHLIGHTS -->
+    <div id="highlightsContainer" class="flex gap-4 mb-6 overflow-x-auto scrollbar-hide"></div>
+
+    <!-- POSTS -->
+    <div id="posts" class="grid grid-cols-3 gap-[2px] md:gap-4"></div>
+
+  </div>
 </main>
 
-<div id="storyModal" class="hidden fixed inset-0 bg-[#1a1a1a] z-[200] flex items-center justify-center" onclick="closeStories()">
-    <div class="relative w-full max-w-md h-[90vh] bg-black rounded-xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-        <div id="storyProgressContainer" class="absolute top-2 left-2 right-2 flex gap-1 z-10"></div>
-        
-        <div class="absolute top-6 left-4 flex items-center gap-2 z-10 text-white">
-            <img src="insta/logo.png" class="w-8 h-8 rounded-full border border-white">
-            <span class="text-xs font-bold">harsh_tech_trek</span>
-            <span class="text-xs text-gray-400">12h</span>
-        </div>
+<!-- STORY MODAL -->
+<div id="storyModal" class="hidden fixed inset-0 bg-black z-50 flex items-center justify-center">
 
-        <div class="w-full h-full flex items-center justify-center bg-black">
-            <img id="storyImage" class="w-full h-full object-cover hidden">
-            <video id="storyVideo" class="w-full h-full object-cover hidden" playsinline></video>
-        </div>
+  <div class="relative w-full max-w-md h-[90vh]">
 
-        <div class="absolute inset-0 flex">
-            <div class="w-1/3 h-full cursor-pointer" onclick="prevStory()"></div>
-            <div class="w-2/3 h-full cursor-pointer" onclick="nextStory()"></div>
-        </div>
-    </div>
-    <button class="absolute top-5 right-10 text-white text-4xl">&times;</button>
-</div>
+    <div id="storyProgressContainer" class="absolute top-2 left-2 right-2 flex gap-1"></div>
 
-<div id="postModal" class="hidden fixed inset-0 bg-black z-[100] flex flex-col lg:flex-row lg:bg-black/80 lg:p-10" onclick="closePost(event)">
-  
-  <div class="flex items-center justify-between p-4 bg-white border-b lg:hidden w-full">
-    <button onclick="closePostManual()" class="text-2xl">&times;</button>
-    <span class="font-bold">Posts</span>
-    <div class="w-6"></div> </div>
+    <img id="storyImage" class="hidden w-full h-full object-cover">
+    <video id="storyVideo" class="hidden w-full h-full object-cover" playsinline></video>
 
-  <button onclick="closePostManual()" class="hidden lg:block absolute top-5 right-10 text-white text-5xl hover:text-gray-300 z-[110]">&times;</button>
+    <button onclick="closeStories()" class="absolute top-4 right-4 text-white text-3xl">&times;</button>
 
-  <div class="bg-white flex flex-col lg:flex-row w-full max-w-6xl h-full lg:h-[85vh] mx-auto rounded-none lg:rounded-lg overflow-hidden" onclick="event.stopPropagation()">
-    
-    <div class="flex-1 bg-black flex items-center justify-center relative group min-h-[40vh] lg:min-h-0">
-      <img id="postImage" class="max-h-full w-full object-contain hidden">
-      <video id="postVideo" class="max-h-full w-full hidden" playsinline loop></video>
-      
-      <button id="prevBtn" class="absolute left-4 bg-white/50 rounded-full w-8 h-8 flex items-center justify-center z-20">❮</button>
-      <button id="nextBtn" class="absolute right-4 bg-white/50 rounded-full w-8 h-8 flex items-center justify-center z-20">❯</button>
-    </div>
-
-    <div class="w-full lg:w-[400px] flex flex-col bg-white overflow-y-auto">
-      <div class="p-4 border-b font-bold text-sm flex items-center gap-3">
-        <img src="insta/logo.png" class="w-8 h-8 rounded-full"> harsh_tech_trek
-      </div>
-      <div class="flex-1 p-4 text-sm" id="postCaption">
-        </div>
-      <div class="p-4 border-t text-2xl flex gap-4">
-        <i class="fa-regular fa-heart cursor-pointer"></i>
-        <i class="fa-regular fa-comment cursor-pointer"></i>
-      </div>
-    </div>
   </div>
 </div>
 
+<!-- POST MODAL -->
+<div id="postModal" class="hidden fixed inset-0 bg-black z-50 flex items-center justify-center" onclick="closePost(event)">
+  
+  <div class="bg-white max-w-4xl w-full flex" onclick="event.stopPropagation()">
+
+    <img id="postImage" class="hidden w-full">
+    <video id="postVideo" class="hidden w-full" playsinline loop></video>
+
+    <button onclick="closePostManual()" class="absolute top-4 right-4 text-white text-3xl">&times;</button>
+
+  </div>
+</div>
+
+<!-- ✅ SCRIPT -->
+<script src="script.js"></script>
+
+<!-- ✅ BASIC FUNCTIONS -->
+<script>
+const MASTER_PIN = "2026";
+
+function checkPin() {
+  const input = document.getElementById("pinInput").value;
+  if (input === MASTER_PIN) {
+    document.getElementById("lockScreen").style.display = "none";
+    localStorage.setItem("vault_unlocked_permanently", "true");
+  } else {
+    document.getElementById("errorMessage").classList.remove("hidden");
+  }
+}
+
+function navigateTo(view) {
+  window.scrollTo(0,0);
+}
+</script>
+
+<!-- ✅ SERVICE WORKER -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
 
 </body>
 </html>
