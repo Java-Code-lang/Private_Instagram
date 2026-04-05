@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">   <!-- empty favicon -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Harshdeep • Instagram Clone</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -346,23 +347,43 @@ if (post.type === "image" || post.type === "video") {
 // --- AUDIO & MEDIA CORE ---
 let activeAudio = null;
 
-function playFolderMusic(folder) {
-    if (activeAudio) { activeAudio.pause(); activeAudio = null; }
-    
-    const audio = new Audio(folder + "song.mp3");
-    audio.loop = true;
-    
-    // Return the promise so we can check if it plays successfully
-    return audio.play()
-        .then(() => {
-            activeAudio = audio;
-            return true; // Music is playing
-        })
-        .catch(() => {
-            return false; // No music found or blocked
-        });
-}
+async function playFolderMusic(folder) {
+    // Stop any previous music
+    if (activeAudio) {
+        activeAudio.pause();
+        activeAudio = null;
+    }
 
+    const audioUrl = folder + "song.mp3";
+
+    try {
+        // Fast check: Does the song file actually exist?
+        const headResponse = await fetch(audioUrl, { method: 'HEAD' });
+        
+        if (!headResponse.ok) {
+            // Silent fail - most posts don't have music
+            return false;
+        }
+
+        // File exists → try to play it
+        const audio = new Audio(audioUrl);
+        audio.loop = true;
+
+        await audio.play();
+        
+        activeAudio = audio;
+        console.log(`🎵 Playing background music: ${audioUrl}`);
+        return true;
+
+    } catch (err) {
+        // Silent for missing files (most common case)
+        // Only log real unexpected errors
+        if (!err.message.includes('404') && !err.message.includes('Failed to fetch')) {
+            console.warn('Music playback error:', err);
+        }
+        return false;
+    }
+}
 // --- UPDATED STORY LOGIC ---
 let storyIdx = 0;
 let storyItemIdx = 0;
@@ -625,15 +646,23 @@ async function navigateTo(targetId) {
             document.body.style.overflow = 'auto'; // Unlock background scroll
         }
     }
-  // --- REGISTER SERVICE WORKER ---
-if ('serviceWorker' in navigator) {
+// Safe Service Worker registration (prevents 404 spam)
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Archive SW Registered'))
-            .catch(err => console.log('SW Registration Failed', err));
+      // Only try to register if sw.js actually exists
+      fetch('/sw.js', { method: 'HEAD' })
+        .then(response => {
+          if (response.ok) {
+            navigator.serviceWorker.register('/sw.js')
+              .then(() => console.log('✅ Service Worker registered'))
+              .catch(err => console.log('SW registration failed:', err));
+          } else {
+            console.log('sw.js not found → skipping registration (normal on GitHub Pages)');
+          }
+        })
+        .catch(() => console.log('sw.js not found → skipping registration'));
     });
-}
-
+  }
 
 // ==================== PIN SECURITY (One-time only) ====================
 const MASTER_PIN = "2026";   // ← Change this to your desired PIN
