@@ -15,39 +15,20 @@
 
   <title>Harshdeep • Instagram Clone</title>
 
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- ✅ SCRIPT -->
-<script src="script.js"></script>
 
-<!-- ✅ BASIC FUNCTIONS -->
-<script>
-const MASTER_PIN = "2026";
-
-function checkPin() {
-  const input = document.getElementById("pinInput").value;
-  if (input === MASTER_PIN) {
-    document.getElementById("lockScreen").style.display = "none";
-    localStorage.setItem("vault_unlocked_permanently", "true");
-  } else {
-    document.getElementById("errorMessage").classList.remove("hidden");
-  }
-}
-
-function navigateTo(view) {
-  window.scrollTo(0,0);
-}
-</script>
-
-<!-- ✅ SERVICE WORKER -->
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
-}
-</script>
+  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    body { background-color: #fafafa; color: #262626; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow-x: hidden; }
+    body {
+      background-color: #fafafa;
+      color: #262626;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+      overflow-x: hidden;
+    }
+
     .scrollbar-hide::-webkit-scrollbar { display: none; }
 
     html, body {
@@ -55,50 +36,68 @@ if ('serviceWorker' in navigator) {
       -webkit-text-size-adjust: 100%;
     }
 
-    #postModal, #storyModal { backdrop-filter: blur(20px); touch-action: none;}
+    #postModal, #storyModal {
+      backdrop-filter: blur(20px);
+      touch-action: none;
+    }
 
     .story-ring {
       padding: 2px;
       background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
     }
 
-    .progress-bar { height: 2px; background: rgba(255,255,255,0.3); flex: 1; border-radius: 10px; overflow: hidden; }
-    .progress-fill { height: 100%; background: #fff; width: 0%; transition: width 0.1s linear; }
+    .progress-bar {
+      height: 2px;
+      background: rgba(255,255,255,0.3);
+      flex: 1;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #fff;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
   </style>
 </head>
 
 <body class="bg-white lg:bg-[#fafafa]">
 
 <!-- 🔐 LOCK SCREEN -->
-<div id="lockScreen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center p-8">
-  <input type="password" id="pinInput" maxlength="4" placeholder="****"
-    class="text-center text-3xl border-b mb-4">
+<div id="lockScreen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center">
   
-  <p id="errorMessage" class="hidden text-red-500 text-xs mb-4">Access Denied</p>
+  <input type="password" id="pinInput" maxlength="4"
+    class="text-center text-3xl border-b mb-4"
+    placeholder="****">
 
-  <button onclick="checkPin()" class="bg-black text-white px-6 py-3 rounded-xl">
+  <p id="errorMessage" class="hidden text-red-500 text-xs mb-4">
+    Access Denied
+  </p>
+
+  <button id="unlockBtn" class="bg-black text-white px-6 py-3 rounded-xl">
     Unlock
   </button>
 </div>
 
 <!-- NAV -->
 <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around p-3 z-50 lg:top-0 lg:left-0 lg:w-64 lg:h-full lg:flex-col lg:border-r">
-  
-  <h1 class="hidden lg:block text-2xl mb-6 px-3 cursor-pointer" onclick="navigateTo('main')">
+
+  <h1 class="hidden lg:block text-2xl mb-6 px-3 cursor-pointer">
     Instagram
   </h1>
 
-  <a href="javascript:void(0)" onclick="navigateTo('main')"><i class="fa-solid fa-house"></i></a>
-  <a href="#"><i class="fa-solid fa-magnifying-glass opacity-50"></i></a>
-  <a href="javascript:void(0)" onclick="openReels()"><i class="fa-solid fa-clapperboard"></i></a>
-  <a href="#"><i class="fa-regular fa-paper-plane"></i></a>
-  <a href="javascript:void(0)" onclick="navigateTo('profile')"><i class="fa-solid fa-user"></i></a>
+  <button onclick="navigateTo('main')"><i class="fa-solid fa-house"></i></button>
+  <button><i class="fa-solid fa-magnifying-glass opacity-50"></i></button>
+  <button onclick="openReels()"><i class="fa-solid fa-clapperboard"></i></button>
+  <button><i class="fa-regular fa-paper-plane"></i></button>
+  <button onclick="navigateTo('profile')"><i class="fa-solid fa-user"></i></button>
 
 </nav>
 
 <!-- MAIN -->
 <main class="lg:ml-64 pb-20">
-
   <div class="max-w-4xl mx-auto pt-8 px-4">
 
     <!-- PROFILE -->
@@ -124,7 +123,6 @@ if ('serviceWorker' in navigator) {
 
 <!-- STORY MODAL -->
 <div id="storyModal" class="hidden fixed inset-0 bg-black z-50 flex items-center justify-center">
-
   <div class="relative w-full max-w-md h-[90vh]">
 
     <div id="storyProgressContainer" class="absolute top-2 left-2 right-2 flex gap-1"></div>
@@ -150,7 +148,42 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
+<!-- ✅ SCRIPT.JS LOAD (AFTER DOM) -->
+<script src="script.js"></script>
 
+<!-- ✅ PIN + BASIC FUNCTIONS -->
+<script>
+const MASTER_PIN = "2026";
+
+document.getElementById("unlockBtn").addEventListener("click", () => {
+  const input = document.getElementById("pinInput").value;
+
+  if (input === MASTER_PIN) {
+    document.getElementById("lockScreen").style.display = "none";
+    localStorage.setItem("vault_unlocked_permanently", "true");
+  } else {
+    document.getElementById("errorMessage").classList.remove("hidden");
+  }
+});
+
+function navigateTo(view) {
+  window.scrollTo(0,0);
+}
+
+// auto unlock if already unlocked
+window.addEventListener("DOMContentLoaded", () => {
+  if (localStorage.getItem("vault_unlocked_permanently") === "true") {
+    document.getElementById("lockScreen").style.display = "none";
+  }
+});
+</script>
+
+<!-- ✅ SERVICE WORKER -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
 
 </body>
 </html>
