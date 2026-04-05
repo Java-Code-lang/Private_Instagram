@@ -624,6 +624,47 @@ async function navigateTo(targetId) {
             document.body.style.overflow = 'auto'; // Unlock background scroll
         }
     }
+  // --- REGISTER SERVICE WORKER ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Archive SW Registered'))
+            .catch(err => console.log('SW Registration Failed', err));
+    });
+}
+
+// --- UPDATED BIOMETRIC SIMULATION ---
+// Note: Real WebAuthn requires a secure context (HTTPS)
+async function triggerBiometric() {
+    const btn = event.currentTarget;
+    btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Scanning...';
+    
+    // Simulating the processing time for FaceID/TouchID
+    setTimeout(() => {
+        if (window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
+            unlockArchive();
+        } else {
+            // Fallback for non-secure local testing
+            unlockArchive(); 
+            console.warn("Biometrics usually require HTTPS. Simulating success.");
+        }
+    }, 1500);
+}
+
+// --- PIN CHECK IMPROVEMENT ---
+function checkPin() {
+    const input = document.getElementById('pinInput').value;
+    const pinBox = document.getElementById('pinBox');
+    
+    if (input === MASTER_PIN) {
+        unlockArchive();
+    } else {
+        pinBox.classList.add('animate-shake'); // Optional: Add a shake CSS animation
+        alert("Access Denied.");
+        document.getElementById('pinInput').value = "";
+        setTimeout(() => pinBox.classList.remove('animate-shake'), 500);
+    }
+}
     // --- SECURITY CONFIG ---
 const MASTER_PIN = "2026"; // Change this to your desired 4-digit code
 
