@@ -666,6 +666,59 @@ function unlockArchive() {
     }, 500);
 }
 
+  // --- SERVICE WORKER REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Archive: Offline Protocol Active'))
+            .catch(err => console.log('Archive: SW Failed', err));
+    });
+}
+
+// --- SMART IMAGE PRELOADER ---
+// This runs in the background to cache all images before the user scrolls to them
+function preloadArchiveMedia() {
+    posts.forEach(post => {
+        if (post.type === "image") {
+            const img = new Image();
+            img.src = post.src;
+        } else if (post.type === "multi") {
+            post.images.forEach(imgName => {
+                const img = new Image();
+                img.src = post.folder + imgName;
+            });
+        }
+    });
+    
+    // Preload Highlight Covers
+    highlights.forEach(h => {
+        const img = new Image();
+        img.src = h.cover;
+    });
+}
+
+// Start preloading after the main page is ready
+window.addEventListener('DOMContentLoaded', preloadArchiveMedia);
+
+// --- UPDATED UNLOCK LOGIC ---
+// Ensure the background color and scrolling are handled correctly upon unlock
+function unlockArchive() {
+    const lock = document.getElementById('lockScreen');
+    lock.style.transition = "opacity 0.5s ease";
+    lock.style.opacity = '0';
+    document.body.style.overflow = "auto";
+    setTimeout(() => {
+        lock.style.display = 'none';
+    }, 500);
+}
+
+// Add this to your existing checkPin function to ensure smooth entry
+if (localStorage.getItem('vault_unlocked_permanently') === 'true') {
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('lockScreen').style.display = 'none';
+        document.body.style.overflow = "auto";
+    });
+}
 
 </script>
 
