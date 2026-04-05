@@ -1,27 +1,44 @@
-const CACHE_NAME = 'harsh_intsa';
+const CACHE_NAME = 'harsh_insta_v2';
+const STATIC_CACHE = [
+    '/',
+    '/index.html',
+    '/style.css',
+    '/script.js'
+];
 
-// Install
+// --- INSTALL (PRECACHE CORE FILES) ---
 self.addEventListener('install', (event) => {
     self.skipWaiting();
+
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => cache.addAll(STATIC_CACHE))
+    );
 });
 
-// Activate
+// --- ACTIVATE (CLEAR OLD CACHE) ---
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then(keys =>
             Promise.all(
-                keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+                keys.map(key => {
+                    if (key !== CACHE_NAME) {
+                        return caches.delete(key);
+                    }
+                })
             )
         )
     );
+
     self.clients.claim();
 });
 
-// Fetch
+
+// --- FETCH STRATEGIES ---
 self.addEventListener('fetch', (event) => {
     const req = event.request;
 
-    // HTML → Network first
+    // 🔹 HTML → NETWORK FIRST (fresh content)
     if (req.destination === 'document') {
         event.respondWith(
             fetch(req)
@@ -30,18 +47,25 @@ self.addEventListener('fetch', (event) => {
                     caches.open(CACHE_NAME).then(c => c.put(req, copy));
                     return res;
                 })
-                .catch(() => caches.match(req))
+                .catch(() => caches.match(req) || caches.match('/index.html'))
         );
         return;
     }
 
-    // MEDIA → Cache first (Instagram style)
-    if (req.destination === 'image' || req.destination === 'video' || req.destination === 'audio') {
+    // 🔹 MEDIA (IMAGE/VIDEO/AUDIO) → CACHE FIRST (Instagram behavior)
+    if (['image', 'video', 'audio'].includes(req.destination)) {
         event.respondWith(
             caches.match(req).then(cached => {
-                return cached || fetch(req).then(res => {
+                if (cached) return cached;
+
+                return fetch(req).then(res => {
                     const copy = res.clone();
-                    caches.open(CACHE_NAME).then(c => c.put(req, copy));
+
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(req, copy);
+                        limitCacheSize(cache, 80); // 🔥 limit media cache
+                    });
+
                     return res;
                 });
             })
@@ -49,6 +73,31 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Default
+    // 🔹 JS/CSS → STALE WHILE REVALIDATE
+    if (['script', 'style'].includes(req.destination)) {
+        event.respondWith(
+            caches.match(req).then(cached => {
+                const fetchPromise = fetch(req).then(res => {
+                    caches.open(CACHE_NAME).then(c => c.put(req, res.clone()));
+                    return res;
+                });
+
+                return cached || fetchPromise;
+            })
+        );
+        return;
+    }
+
+    // 🔹 DEFAULT
     event.respondWith(fetch(req));
 });
+
+
+// --- CACHE SIZE LIMIT (IMPORTANT FOR VIDEOS) ---
+async function limitCacheSize(cache, maxItems) {
+    const keys = await cache.keys();
+
+    if (keys.length > maxItems) {
+        cache.delete(keys[0]).then(() => limitCacheSize(cache, maxItems));
+    }
+}
