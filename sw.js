@@ -3,7 +3,7 @@ const STATIC_CACHE = [
     '/',
     '/index.html',
     '/style.css',
-    '/script.js'
+    '/script.js' 
 ];
 
 // --- INSTALL ---
