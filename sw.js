@@ -1,54 +1,43 @@
-/* HARSH ARCHIVE - NATIVE ENGINE V2.0 */
-const CACHE_NAME = 'harsh-archive-cache-v2';
+/* HARSH ARCHIVE - OFFLINE ENGINE V2.2 */
+const CACHE_NAME = 'harsh-archive-v2.2';
 
-// Core UI files to cache immediately on install
-const PRE_CACHE_RESOURCES = [
+// Files to cache immediately
+const PRE_CACHE = [
   './',
   './index.html',
   './content.html',
   './insta/logo.png'
 ];
 
-// 1. Installation: Save the core UI to the phone
+// Install: Save UI to phone
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRE_CACHE_RESOURCES);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(PRE_CACHE))
   );
   self.skipWaiting();
 });
 
-// 2. Activation: Clean up old versions
+// Activate: Clear old versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+    ))
   );
 });
 
-// 3. Fetch Strategy: "Cache First, then Network"
-// This ensures that if a file (image/video) is in the cache, it uses 0% data.
+// Fetch: Serve from Cache first, then Network
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse; // Return from phone memory
-      }
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) return cachedResponse;
 
-      return fetch(event.request).then((networkResponse) => {
-        // If it's a valid asset (image, video, script), save it for next time
+      return fetch(event.request).then(networkResponse => {
+        // Cache new images/videos as you browse them
         if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+          const cacheCopy = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, cacheCopy);
           });
         }
         return networkResponse;
