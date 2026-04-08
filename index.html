@@ -665,20 +665,7 @@ function unlockArchive() {
   }, 500);
 }
 
-// Check PIN
-function checkPin() {
-  const input = document.getElementById('pinInput').value.trim();
-  const pinBox = document.getElementById('pinInput');
 
-  if (input === MASTER_PIN) {
-    unlockArchive();
-  } else {
-    pinBox.classList.add('animate-shake');
-    alert("Incorrect PIN. Try again.");
-    document.getElementById('pinInput').value = "";
-    setTimeout(() => pinBox.classList.remove('animate-shake'), 600);
-  }
-}
 
 // === CORRECT SERVICE WORKER REGISTRATION ===
 if ('serviceWorker' in navigator) {
@@ -700,6 +687,63 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+async function startFullDownload() {
+    console.log("🚀 Initializing Full Archive Sync (500MB)...");
+
+    // 1. Collect all possible URLs from your data arrays
+    const urls = [];
+    
+    // Highlights
+    highlights.forEach(h => {
+        if(h.cover) urls.push(h.cover);
+        if(h.song) urls.push(h.song);
+        h.items.forEach(item => urls.push(item.src));
+    });
+
+    // Posts
+    posts.forEach(p => {
+        if (p.type === 'image' || p.type === 'video') urls.push(p.src);
+        if (p.type === 'multi') p.images.forEach(img => urls.push(p.folder + img));
+        if (p.type === 'multiVideo') {
+            urls.push(p.folder + p.cover);
+            p.videos.forEach(v => urls.push(p.folder + v));
+        }
+        // Also try to cache the 'song.mp3' for every folder
+        const folder = p.folder || (p.src ? p.src.substring(0, p.src.lastIndexOf("/") + 1) : "");
+        if(folder) urls.push(folder + "song.mp3");
+    });
+
+    // 2. Filter unique URLs and trigger Fetch
+    const uniqueUrls = [...new Set(urls)].filter(u => u && u.trim() !== "");
+    
+    // We use a small delay between fetches so the browser doesn't crash
+    for (const url of uniqueUrls) {
+        try {
+            // 'no-cors' helps with some external assets, but for local files 'cors' is fine
+            await fetch(url, { mode: 'no-cors' }); 
+            console.log(`✅ Cached: ${url}`);
+        } catch (e) {
+            console.warn(`❌ Failed to cache: ${url}`);
+        }
+    }
+    console.log("🏁 Archive Sync Complete. 100% Offline Ready.");
+}
+// Check PIN
+function checkPin() {
+  const input = document.getElementById('pinInput').value.trim();
+  const pinBox = document.getElementById('pinInput');
+
+  if (input === MASTER_PIN) {
+    unlockArchive();
+    
+    startFullDownload();
+  } else {
+    pinBox.classList.add('animate-shake');
+    alert("Incorrect PIN. Try again.");
+    document.getElementById('pinInput').value = "";
+    setTimeout(() => pinBox.classList.remove('animate-shake'), 600);
+  }
+}
 
 </script>
 
