@@ -610,7 +610,62 @@
         </div>
     </div>
 
-   
+   <div id="diet-calculator" class="p-6 bg-black text-white rounded-xl border border-gray-800 shadow-2xl max-w-sm mx-auto my-10 font-sans">
+    <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-fire text-orange-500"></i> Fitness Tracker
+    </h2>
+    
+    <div class="space-y-3">
+        <label class="flex justify-between items-center p-3 bg-gray-900 rounded-lg border border-gray-800">
+            <span>Soya Chunks (60g)</span>
+            <input type="checkbox" id="soya-check" class="w-5 h-5 accent-green-500">
+        </label>
+        <label class="flex justify-between items-center p-3 bg-gray-900 rounded-lg border border-gray-800">
+            <span>Milk (500ml)</span>
+            <input type="checkbox" id="milk-check" class="w-5 h-5 accent-green-500">
+        </label>
+        <label class="flex justify-between items-center p-3 bg-gray-900 rounded-lg border border-gray-800">
+            <span>Roti (Exactly 4)</span>
+            <input type="checkbox" id="roti-check" class="w-5 h-5 accent-green-500">
+        </label>
+        <label class="flex justify-between items-center p-3 bg-gray-900 rounded-lg border border-gray-800">
+            <span>Rice (2 Bowls)</span>
+            <input type="checkbox" id="rice-check" class="w-5 h-5 accent-green-500">
+        </label>
+        <label class="flex justify-between items-center p-3 bg-gray-900 rounded-lg border border-gray-800">
+            <span>Amla (1 piece)</span>
+            <input type="checkbox" id="amla-check" class="w-5 h-5 accent-green-500">
+        </label>
+        <label class="flex justify-between items-center p-3 bg-gray-900 rounded-lg border border-gray-800">
+            <span>Dal / Sabzi</span>
+            <input type="checkbox" id="dal-check" class="w-5 h-5 accent-green-500">
+        </label>
+    </div>
+
+    <div class="mt-6 border-t border-gray-800 pt-4">
+        <h3 class="text-xs font-bold text-red-500 mb-2 uppercase tracking-tighter">⚠️ Junk Food / Sweet Log</h3>
+        <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="junk-name" placeholder="E.g. Burger, Pizza" class="bg-gray-900 p-2 rounded border border-gray-700 text-xs text-white outline-none">
+            <input type="number" id="junk-qty" placeholder="Qty (1, 2...)" class="bg-gray-900 p-2 rounded border border-gray-700 text-xs text-white outline-none">
+        </div>
+        <p id="auto-cal-msg" class="text-[10px] text-gray-500 mt-1 italic italic italic"></p>
+    </div>
+
+    <div class="mt-6 grid grid-cols-2 gap-4">
+        <div class="p-3 bg-blue-900/20 rounded-lg border border-blue-900 text-center">
+            <span class="text-[10px] text-blue-300 uppercase block">Total Calories</span>
+            <span id="display-total" class="text-xl font-black text-blue-400">0</span>
+        </div>
+        <div class="p-3 bg-green-900/20 rounded-lg border border-green-900 text-center">
+            <span class="text-[10px] text-green-300 uppercase block">Total Protein</span>
+            <span id="display-protein" class="text-xl font-black text-green-400">0g</span>
+        </div>
+    </div>
+
+    <button onclick="saveDailyData()" class="w-full mt-4 bg-white text-black font-bold py-3 rounded-lg active:scale-95 transition">
+        Save To Log
+    </button>
+</div>
 
 </body>
 </html>
