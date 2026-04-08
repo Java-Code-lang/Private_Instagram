@@ -667,25 +667,6 @@ function unlockArchive() {
 
 
 
-// === CORRECT SERVICE WORKER REGISTRATION ===
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // Use the exact name you created
-    const swFile = '/Private_Instagram/worker.js';   // Change to /Private_Instagram/worker.js if you kept that name
-
-    fetch(swFile, { method: 'HEAD' })
-      .then(response => {
-        if (response.ok) {
-          navigator.serviceWorker.register(swFile)
-            .then(() => console.log('✅ Service Worker registered successfully'))
-            .catch(err => console.log('Service Worker registration failed:', err));
-        } else {
-          console.log('sw.js not found at root → skipping registration');
-        }
-      })
-      .catch(() => console.log('Service Worker file not found'));
-  });
-}
 
 async function startFullDownload() {
     console.log("🚀 Initializing Full Archive Sync (500MB)...");
@@ -743,6 +724,22 @@ function checkPin() {
     document.getElementById('pinInput').value = "";
     setTimeout(() => pinBox.classList.remove('animate-shake'), 600);
   }
+}
+  // --- CORRECT SERVICE WORKER REGISTRATION ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Register the worker.js file located in your project folder
+    navigator.serviceWorker.register('worker.js')
+      .then(reg => {
+        console.log('✅ Service Worker Registered');
+        
+        // If already unlocked, start the big download automatically
+        if (localStorage.getItem('archive_unlocked') === 'true') {
+          startFullDownload();
+        }
+      })
+      .catch(err => console.error('❌ SW Registration Failed:', err));
+  });
 }
 
 </script>
