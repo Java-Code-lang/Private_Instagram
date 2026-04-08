@@ -57,7 +57,8 @@
     
     <a href="#" class="sidebar-item flex items-center gap-4 p-3 w-full opacity-50 cursor-default"><i class="fa-solid fa-magnifying-glass text-xl"></i> <span class="hidden lg:block">Search</span></a>
         
-          <a href="javascript:void(0)" onclick="navigateTo('reels-data')"class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
+    <a href="javascript:void(0)" onclick="navigateTo('diet-calculator')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Explore</span></a>
+  
  
     <a href="javascript:void(0)" onclick="navigateTo('reels-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Reels</span></a>
     <a href="javascript:void(0)" onclick="navigateTo('messages-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-paper-plane text-xl"></i> <span class="hidden lg:block">Messages</span></a>
@@ -764,6 +765,90 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.error('❌ SW Registration Failed:', err));
   });
 }
+
+  // Database for "Automatic Verification"
+const NUTRITION_DB = {
+    // Healthy Items (Updated to your new 60g Soya specs)
+    soya: { cal: 210, pro: 31 }, // 60g 
+    milk: { cal: 300, pro: 16 }, // 500ml
+    roti: { cal: 300, pro: 10 }, // 4 Roti
+    rice: { cal: 410, pro: 8 },  // 2 Bowls
+    amla: { cal: 20,  pro: 0.5 },
+    dal:  { cal: 200, pro: 12 },
+    
+    // Boycotted / Junk Food Lookup
+    burger: 350,
+    pizza: 280, // per slice
+    samosa: 250,
+    momos: 35,  // per piece
+    coke: 140,
+    chips: 150,
+    chocolate: 200,
+    maggi: 300
+};
+
+function verifyAndCalculate() {
+    let totalCal = 0;
+    let totalPro = 0;
+    
+    // 1. Calculate Healthy Items
+    const checks = ['soya', 'milk', 'roti', 'rice', 'amla', 'dal'];
+    checks.forEach(id => {
+        if(document.getElementById(`${id}-check`).checked) {
+            totalCal += NUTRITION_DB[id].cal;
+            totalPro += NUTRITION_DB[id].pro;
+        }
+    });
+
+    // 2. Automatic Junk Verification
+    const junkName = document.getElementById('junk-name').value.toLowerCase().trim();
+    const junkQty = parseInt(document.getElementById('junk-qty').value) || 0;
+    const msg = document.getElementById('auto-cal-msg');
+    
+    let junkCal = 0;
+    if (junkName && junkQty > 0) {
+        // Find match in our "data"
+        const match = Object.keys(NUTRITION_DB).find(key => junkName.includes(key));
+        if (match && typeof NUTRITION_DB[match] === 'number') {
+            junkCal = NUTRITION_DB[match] * junkQty;
+            msg.innerText = `Matched: ${match} (${NUTRITION_DB[match]} kcal each)`;
+        } else {
+            // Fallback if food is unknown (estimate 250 per qty)
+            junkCal = 250 * junkQty;
+            msg.innerText = "Estimated: 250 kcal per serving";
+        }
+    } else {
+        msg.innerText = "";
+    }
+
+    totalCal += junkCal;
+
+    // 3. Update Displays
+    document.getElementById('display-total').innerText = totalCal;
+    document.getElementById('display-protein').innerText = totalPro + "g";
+    
+    return { totalCal, totalPro, junkTaken: junkQty > 0, foodName: junkName };
+}
+
+function saveDailyData() {
+    const stats = verifyAndCalculate();
+    const date = new Date().toLocaleDateString();
+    
+    const entry = {
+        date: date,
+        totalCal: stats.totalCal,
+        totalPro: stats.totalPro,
+        junk: stats.junkTaken ? `YES (${stats.foodName})` : "NO"
+    };
+
+    localStorage.setItem(`diet_${date}`, JSON.stringify(entry));
+    alert(`Day Logged: ${stats.totalPro}g Protein!`);
+}
+
+// Auto-run on every input
+document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', verifyAndCalculate);
+});
 
 </script>
 
