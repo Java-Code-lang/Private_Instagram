@@ -667,44 +667,57 @@ function unlockArchive() {
 
 
 
-
-async function startFullDownload() {
+  async function startFullDownload() {
     console.log("🚀 Initializing Full Archive Sync (500MB)...");
-
-    // 1. Collect all possible URLs from your data arrays
+    const cache = await caches.open('harsh-archive-v1');
     const urls = [];
     
-    // Highlights
+    // 1. Collect Highlights
     highlights.forEach(h => {
         if(h.cover) urls.push(h.cover);
         if(h.song) urls.push(h.song);
-        h.items.forEach(item => urls.push(item.src));
+        if(h.items) h.items.forEach(item => urls.push(item.src));
     });
 
-    // Posts
+    // 2. Collect Posts
     posts.forEach(p => {
-        if (p.type === 'image' || p.type === 'video') urls.push(p.src);
-        if (p.type === 'multi') p.images.forEach(img => urls.push(p.folder + img));
-        if (p.type === 'multiVideo') {
-            urls.push(p.folder + p.cover);
+        if (p.type === 'image' || p.type === 'video') {
+            urls.push(p.src);
+        } else if (p.type === 'multi') {
+            p.images.forEach(img => urls.push(p.folder + img));
+        } else if (p.type === 'multiVideo') {
+            if(p.cover) urls.push(p.folder + p.cover);
             p.videos.forEach(v => urls.push(p.folder + v));
         }
-        // Also try to cache the 'song.mp3' for every folder
+        
+        // Potential song for every post folder
         const folder = p.folder || (p.src ? p.src.substring(0, p.src.lastIndexOf("/") + 1) : "");
         if(folder) urls.push(folder + "song.mp3");
     });
 
-    // 2. Filter unique URLs and trigger Fetch
+    // 3. Unique & Clean URLs
     const uniqueUrls = [...new Set(urls)].filter(u => u && u.trim() !== "");
     
-    // We use a small delay between fetches so the browser doesn't crash
+    // 4. Download and Force-Save to Cache
     for (const url of uniqueUrls) {
         try {
-            // 'no-cors' helps with some external assets, but for local files 'cors' is fine
-            await fetch(url, { mode: 'no-cors' }); 
-            console.log(`✅ Cached: ${url}`);
+            // Check if already in cache to save data
+            const alreadyInCache = await caches.match(url);
+            if (alreadyInCache) {
+                console.log(`⏩ Already Cached: ${url}`);
+                continue;
+            }
+
+            // Fetch with a timeout to prevent hanging
+            const response = await fetch(url);
+            if (response.ok) {
+                await cache.put(url, response.clone());
+                console.log(`✅ Saved to Cache: ${url}`);
+            } else if (response.status === 404) {
+                // Ignore missing songs/files silently
+            }
         } catch (e) {
-            console.warn(`❌ Failed to cache: ${url}`);
+            // Ignore errors for individual files
         }
     }
     console.log("🏁 Archive Sync Complete. 100% Offline Ready.");
