@@ -357,28 +357,38 @@ async function playFolderMusic(folder) {
     const audioUrl = folder + "song.mp3";
 
     try {
-        // Fast check: Does the song file actually exist?
-        const headResponse = await fetch(audioUrl, { method: 'HEAD' });
-        
-        if (!headResponse.ok) {
-            // Silent fail - most posts don't have music
-            return false;
+        // 1. OFFLINE-FRIENDLY CHECK: Does the song exist in our 500MB cache?
+        const cache = await caches.open('harsh-archive-v1');
+        const cachedMatch = await cache.match(audioUrl);
+
+        // 2. Determine if we can proceed (Either it's in cache OR we are online)
+        let shouldTryPlay = !!cachedMatch;
+
+        if (!shouldTryPlay && navigator.onLine) {
+            // If not in cache but we ARE online, do a quick check
+            const check = await fetch(audioUrl, { method: 'GET' });
+            if (check.ok) shouldTryPlay = true;
         }
 
-        // File exists → try to play it
-        const audio = new Audio(audioUrl);
-        audio.loop = true;
+        if (shouldTryPlay) {
+            const audio = new Audio(audioUrl);
+            audio.loop = true;
 
-        await audio.play();
-        
-        activeAudio = audio;
-        console.log(`🎵 Playing background music: ${audioUrl}`);
-        return true;
+            // Start playback
+            await audio.play();
+            
+            activeAudio = audio;
+            console.log(`🎵 Playing background music: ${audioUrl}`);
+            return true;
+        }
+
+        return false;
 
     } catch (err) {
-        // Silent for missing files (most common case)
-        // Only log real unexpected errors
-        if (!err.message.includes('404') && !err.message.includes('Failed to fetch')) {
+        // Handle common silent failures (like browser blocking auto-play)
+        if (err.name === 'NotAllowedError') {
+            console.warn('Playback blocked by browser. User must click first.');
+        } else if (!err.message.includes('404') && !err.message.includes('Failed to fetch')) {
             console.warn('Music playback error:', err);
         }
         return false;
