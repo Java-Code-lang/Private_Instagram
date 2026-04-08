@@ -1,9 +1,9 @@
 const CACHE_NAME = 'harsh-archive-v1';
 
+// Relative paths for GitHub Pages compatibility
 const CORE_ASSETS = [
-  '/',
-  '/index.html',
-  '/content.html',
+  'index.html',
+  'content.html',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
@@ -11,7 +11,16 @@ const CORE_ASSETS = [
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of CORE_ASSETS) {
+        try {
+          await cache.add(asset);
+          console.log('✅ Core Asset Cached:', asset);
+        } catch (e) {
+          console.warn('⚠️ Core Asset Failed:', asset);
+        }
+      }
+    })
   );
 });
 
@@ -26,35 +35,21 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  
-  // LOGIC: For offline reliability, we check cache FIRST, then network.
+  if (req.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(req).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(req).then((networkResponse) => {
-        // Only cache successful GET requests
-        if (!networkResponse || networkResponse.status !== 200 || req.method !== 'GET') {
-          return networkResponse;
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        // Auto-save media to cache as user browses
+        const isArchive = req.url.includes('/insta/') || req.url.includes('/comeback/');
+        if (res.status === 200 && isArchive) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
         }
-
-        const isArchiveFile = req.url.includes('/insta/') || 
-                             req.url.includes('/comeback/') ||
-                             ['image', 'video', 'audio'].includes(req.destination);
-
-        if (isArchiveFile) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(req, responseToCache);
-          });
-        }
-
-        return networkResponse;
+        return res;
       }).catch(() => {
-        // If offline and not in cache, show main page
-        if (req.destination === 'document') return caches.match('/index.html');
+        if (req.destination === 'document') return caches.match('index.html');
       });
     })
   );
