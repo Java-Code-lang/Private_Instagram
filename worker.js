@@ -1,6 +1,6 @@
 const CACHE_NAME = 'harsh-archive-v1';
 
-// 1. Updated Core Assets with full paths
+// Improved Core Assets with both relative and absolute paths
 const CORE_ASSETS = [
   './', 
   'index.html',
@@ -17,13 +17,18 @@ self.addEventListener('install', (event) => {
       console.log('📥 Pre-caching Core Assets...');
       for (const url of CORE_ASSETS) {
         try {
-          // Use 'no-cors' for external CDNs (Tailwind/FontAwesome) to avoid errors
-          const request = url.startsWith('http') 
-            ? new Request(url, { mode: 'no-cors' }) 
-            : new Request(url);
-          await cache.add(request);
+          // IMPORTANT: Removed 'no-cors' for internal files like index/content 
+          // to ensure they are fully saved. CDNs keep 'no-cors'.
+          const isExternal = url.startsWith('http');
+          const request = new Request(url, isExternal ? { mode: 'no-cors' } : {});
+          
+          const response = await fetch(request);
+          if (response.ok || isExternal) {
+            await cache.put(request, response);
+            console.log(`✅ Cached successfully: ${url}`);
+          }
         } catch (err) {
-          console.warn(`Failed to cache: ${url}`, err);
+          console.warn(`⚠️ Failed to cache: ${url}`, err);
         }
       }
     })
@@ -49,7 +54,7 @@ self.addEventListener('fetch', (event) => {
 
       const cache = await caches.open(CACHE_NAME);
       
-      // 2. Case-Insensitive Search (Fixes "Post" vs "post")
+      // 2. Case-Insensitive Search (The "Fuzzy Match" logic you love)
       const keys = await cache.keys();
       const requestUrl = event.request.url.toLowerCase();
       const fuzzyMatch = keys.find(k => k.url.toLowerCase() === requestUrl);
@@ -61,10 +66,10 @@ self.addEventListener('fetch', (event) => {
 
       // 3. Try Network
       return fetch(event.request).then((networkResponse) => {
-        // Auto-cache successful media requests (insta/ or comeback/ folders)
         const isMedia = event.request.url.includes('/insta/') || 
                         event.request.url.includes('/comeback/') ||
-                        event.request.url.includes('.mp4');
+                        event.request.url.includes('.mp4') ||
+                        event.request.url.includes('.mp3'); // Added mp3 for diet music
 
         if (networkResponse && networkResponse.status === 200 && isMedia) {
           cache.put(event.request, networkResponse.clone());
@@ -72,11 +77,11 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       }).catch(() => {
         // 4. Truly offline fallback
-        // Only show the "File not found" message for media, not the main page
         if (event.request.mode === 'navigate') {
-          return caches.match('index.html');
+          // If the user tries to go to content.html offline, we serve it from cache
+          return caches.match('content.html') || caches.match('index.html');
         }
-        return new Response('Offline: File not found in archive', { 
+        return new Response('Offline: Media not in archive', { 
             status: 404, 
             headers: { 'Content-Type': 'text/plain' } 
         });
