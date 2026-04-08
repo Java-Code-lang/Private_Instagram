@@ -1,6 +1,5 @@
 const CACHE_NAME = 'harsh-archive-v1';
 
-// Only core UI files need to be listed here
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -9,7 +8,6 @@ const CORE_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// 1. Install - Save only the UI
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -17,7 +15,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. Activate - Clean old versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
@@ -27,26 +24,27 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 3. The "Auto-Store" Logic
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET') return;
-
+  
+  // LOGIC: For offline reliability, we check cache FIRST, then network.
   event.respondWith(
     caches.match(req).then((cachedResponse) => {
-      // IF ALREADY CACHED: Return immediately (Saves 100% Data)
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      // IF NOT CACHED: Download it, then Save it, then Show it
       return fetch(req).then((networkResponse) => {
-        // Check if it's a file we actually want to store (Images, Videos, Audio, or Archive folders)
-        const isArchiveFile = req.url.includes('/insta/') || 
-                              req.url.includes('/comeback/') ||
-                              ['image', 'video', 'audio'].includes(req.destination);
+        // Only cache successful GET requests
+        if (!networkResponse || networkResponse.status !== 200 || req.method !== 'GET') {
+          return networkResponse;
+        }
 
-        if (networkResponse && networkResponse.status === 200 && isArchiveFile) {
+        const isArchiveFile = req.url.includes('/insta/') || 
+                             req.url.includes('/comeback/') ||
+                             ['image', 'video', 'audio'].includes(req.destination);
+
+        if (isArchiveFile) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(req, responseToCache);
@@ -55,7 +53,7 @@ self.addEventListener('fetch', (event) => {
 
         return networkResponse;
       }).catch(() => {
-        // Fallback for offline mode if file isn't in cache
+        // If offline and not in cache, show main page
         if (req.destination === 'document') return caches.match('/index.html');
       });
     })
