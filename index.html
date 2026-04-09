@@ -58,7 +58,7 @@
     <a href="#" class="sidebar-item flex items-center gap-4 p-3 w-full opacity-50 cursor-default"><i class="fa-solid fa-magnifying-glass text-xl"></i> <span class="hidden lg:block">Search</span></a>
         
 
-    <a href="javascript:void(0)" onclick="loadDietModule(this)"  class="sidebar-item flex items-center gap-4 p-3 w-full"> <i class="fa-solid fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
+    <a href="javascript:void(0)" onclick="navigateTo('diet'); loadDietModule(this);"  class="sidebar-item flex items-center gap-4 p-3 w-full"> <i class="fa-solid fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
 
     <a href="javascript:void(0)" onclick="navigateTo('reels-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Reels</span></a>
     <a href="javascript:void(0)" onclick="navigateTo('messages-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-paper-plane text-xl"></i> <span class="hidden lg:block">Messages</span></a>
@@ -769,105 +769,51 @@ if ('serviceWorker' in navigator) {
 // --- NAVIGATION & DIET LOG LOGIC ---
 
 async function loadDietModule(element) {
-    // 1. Identify the main container (yours is the <main> tag)
-    const mainContainer = document.querySelector('main');
+    const profileView = document.getElementById('profile-view');
+    const dynamicView = document.getElementById('dynamic-view');
     
-    // 2. UI: Highlight active sidebar item
-    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('bg-gray-100', 'lg:bg-gray-800', 'text-black', 'text-white'));
-    element.classList.add('lg:bg-gray-800', 'text-white');
+    // 1. UI: Highlight active sidebar item
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.classList.remove('bg-gray-800', 'text-white');
+        item.classList.add('text-gray-400');
+    });
+    element.classList.add('bg-gray-800', 'text-white');
+    element.classList.remove('text-gray-400');
 
     try {
-        // 3. Fetch from content.html
+        // 2. Fetch from content.html
         const response = await fetch('content.html');
         const text = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
-        const dietHtml = doc.getElementById('diet').innerHTML;
+        const dietSection = doc.getElementById('diet');
 
-        // 4. Inject and switch view
-        mainContainer.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${dietHtml}</div>`;
-        document.body.style.backgroundColor = "#000"; // Match the dark mode vibe
+        if (dietSection && dynamicView) {
+            // 3. SWITCH VIEWS correctly without deleting them
+            profileView.classList.add('hidden');
+            dynamicView.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${dietSection.innerHTML}</div>`;
+            dynamicView.classList.remove('hidden');
+            
+            document.body.style.backgroundColor = "#000"; 
 
-        // 5. Initialize the Date and History
-        initDietUI();
-        
+            // 4. Initialize Date and Logs
+            initDietUI();
+        }
     } catch (err) {
         console.error("Archive Error:", err);
-        mainContainer.innerHTML = `<div class="p-10 text-red-500 font-mono">ERROR: Could not load diet module. Check Live Server.</div>`;
     }
 }
 
 function initDietUI() {
-    // Set Date Display
     const dateDisplay = document.getElementById('currentDateDisplay');
     if (dateDisplay) {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         dateDisplay.innerText = new Date().toLocaleDateString(undefined, options);
     }
-    // Load History
     displayLogs();
 }
 
-// --- JOURNAL FUNCTIONS (Must be Global) ---
-
-window.saveLog = function() {
-    const input = document.getElementById('journalInput');
-    const text = input.value.trim();
-    if (!text) return;
-
-    const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
-    const newEntry = {
-        id: Date.now(),
-        date: new Date().toLocaleDateString(),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        content: text
-    };
-
-    logs.unshift(newEntry);
-    localStorage.setItem('diet_logs', JSON.stringify(logs));
-    input.value = '';
-    displayLogs();
-};
-
-window.displayLogs = function() {
-    const container = document.getElementById('logHistory');
-    if (!container) return;
-
-    const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
-    container.innerHTML = logs.map(log => `
-        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl group animate-in fade-in duration-500">
-            <div class="flex justify-between items-start mb-2">
-                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">${log.date} | ${log.time}</span>
-                <div class="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="modifyLog(${log.id})" class="text-gray-500 hover:text-white text-[10px] font-bold uppercase">Modify</button>
-                    <button onclick="deleteLog(${log.id})" class="text-red-900 hover:text-red-500 text-[10px] font-bold uppercase">Delete</button>
-                </div>
-            </div>
-            <p class="text-gray-300 text-sm leading-relaxed">${log.content.replace(/\n/g, '<br>')}</p>
-        </div>
-    `).join('');
-};
-
-window.modifyLog = function(id) {
-    const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
-    const logToEdit = logs.find(l => l.id === id);
-    if (logToEdit) {
-        document.getElementById('journalInput').value = logToEdit.content;
-        deleteLog(id); // Remove to "republish"
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-};
-
-window.deleteLog = function(id) {
-    let logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
-    logs = logs.filter(l => l.id !== id);
-    localStorage.setItem('diet_logs', JSON.stringify(logs));
-    displayLogs();
-};
-
-window.clearInput = function() {
-    document.getElementById('journalInput').value = '';
-};
+  
 </script>
 
 </body>
