@@ -766,187 +766,108 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-  // Database for "Automatic Verification"
-const NUTRITION_DB = {
-    // Healthy Items (Updated to your new 60g Soya specs)
-    soya: { cal: 210, pro: 31 }, // 60g 
-    milk: { cal: 300, pro: 16 }, // 500ml
-    roti: { cal: 300, pro: 10 }, // 4 Roti
-    rice: { cal: 410, pro: 8 },  // 2 Bowls
-    amla: { cal: 20,  pro: 0.5 },
-    dal:  { cal: 200, pro: 12 },
-    
-    // Boycotted / Junk Food Lookup
-    burger: 350,
-    pizza: 280, // per slice
-    samosa: 250,
-    momos: 35,  // per piece
-    coke: 140,
-    chips: 150,
-    chocolate: 200,
-    maggi: 300
-};
+// --- NAVIGATION & DIET LOG LOGIC ---
 
-function verifyAndCalculate() {
-    let totalCal = 0;
-    let totalPro = 0;
-    
-    // 1. Calculate Healthy Items
-    const checks = ['soya', 'milk', 'roti', 'rice', 'amla', 'dal'];
-    checks.forEach(id => {
-        if(document.getElementById(`${id}-check`).checked) {
-            totalCal += NUTRITION_DB[id].cal;
-            totalPro += NUTRITION_DB[id].pro;
-        }
-    });
-
-    // 2. Automatic Junk Verification
-    const junkName = document.getElementById('junk-name').value.toLowerCase().trim();
-    const junkQty = parseInt(document.getElementById('junk-qty').value) || 0;
-    const msg = document.getElementById('auto-cal-msg');
-    
-    let junkCal = 0;
-    if (junkName && junkQty > 0) {
-        // Find match in our "data"
-        const match = Object.keys(NUTRITION_DB).find(key => junkName.includes(key));
-        if (match && typeof NUTRITION_DB[match] === 'number') {
-            junkCal = NUTRITION_DB[match] * junkQty;
-            msg.innerText = `Matched: ${match} (${NUTRITION_DB[match]} kcal each)`;
-        } else {
-            // Fallback if food is unknown (estimate 250 per qty)
-            junkCal = 250 * junkQty;
-            msg.innerText = "Estimated: 250 kcal per serving";
-        }
-    } else {
-        msg.innerText = "";
-    }
-
-    totalCal += junkCal;
-
-    // 3. Update Displays
-    document.getElementById('display-total').innerText = totalCal;
-    document.getElementById('display-protein').innerText = totalPro + "g";
-    
-    return { totalCal, totalPro, junkTaken: junkQty > 0, foodName: junkName };
-}
-
-function saveDailyData() {
-    const stats = verifyAndCalculate();
-    const date = new Date().toLocaleDateString();
-    
-    const entry = {
-        date: date,
-        totalCal: stats.totalCal,
-        totalPro: stats.totalPro,
-        junk: stats.junkTaken ? `YES (${stats.foodName})` : "NO"
-    };
-
-    localStorage.setItem(`diet_${date}`, JSON.stringify(entry));
-    alert(`Day Logged: ${stats.totalPro}g Protein!`);
-}
-
-// Auto-run on every input
-document.querySelectorAll('input').forEach(input => {
-    input.addEventListener('input', verifyAndCalculate);
-});
 async function loadDietModule(element) {
-    const mainDisplay = document.getElementById('diet'); // Ensure your main div has this ID
+    // 1. Identify the main container (yours is the <main> tag)
+    const mainContainer = document.querySelector('main');
     
-    // 1. Highlight active sidebar item
-    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('bg-gray-800', 'text-white'));
-    element.classList.add('bg-gray-800', 'text-white');
+    // 2. UI: Highlight active sidebar item
+    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('bg-gray-100', 'lg:bg-gray-800', 'text-black', 'text-white'));
+    element.classList.add('lg:bg-gray-800', 'text-white');
 
     try {
-        // 2. Fetch the diet section from content.html
+        // 3. Fetch from content.html
         const response = await fetch('content.html');
         const text = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
         const dietHtml = doc.getElementById('diet').innerHTML;
 
-        // 3. Inject into index.html
-        mainDisplay.innerHTML = dietHtml;
+        // 4. Inject and switch view
+        mainContainer.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${dietHtml}</div>`;
+        document.body.style.backgroundColor = "#000"; // Match the dark mode vibe
 
-        // 4. Initialize the Log Logic immediately after injection
-        initJournal();
+        // 5. Initialize the Date and History
+        initDietUI();
         
     } catch (err) {
-        console.error("Failed to load module:", err);
-        mainDisplay.innerHTML = `<div class="p-10 text-red-500 font-mono text-sm">ARCHIVE_ERROR: Could not fetch content.html</div>`;
+        console.error("Archive Error:", err);
+        mainContainer.innerHTML = `<div class="p-10 text-red-500 font-mono">ERROR: Could not load diet module. Check Live Server.</div>`;
     }
 }
 
-function initJournal() {
-    // Set Date
+function initDietUI() {
+    // Set Date Display
     const dateDisplay = document.getElementById('currentDateDisplay');
     if (dateDisplay) {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         dateDisplay.innerText = new Date().toLocaleDateString(undefined, options);
     }
-    // Render stored logs
+    // Load History
     displayLogs();
 }
 
-// --- CORE LOGIC (Must be in index.html to handle the buttons) ---
+// --- JOURNAL FUNCTIONS (Must be Global) ---
 
-function saveLog() {
+window.saveLog = function() {
     const input = document.getElementById('journalInput');
-    const content = input.value.trim();
-    if (!content) return;
+    const text = input.value.trim();
+    if (!text) return;
 
     const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
-    const entry = {
+    const newEntry = {
         id: Date.now(),
         date: new Date().toLocaleDateString(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        content: content
+        content: text
     };
 
-    logs.unshift(entry);
+    logs.unshift(newEntry);
     localStorage.setItem('diet_logs', JSON.stringify(logs));
     input.value = '';
     displayLogs();
-}
+};
 
-function displayLogs() {
+window.displayLogs = function() {
     const container = document.getElementById('logHistory');
     if (!container) return;
 
     const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
     container.innerHTML = logs.map(log => `
-        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl mb-4 group animate-fade-in">
-            <div class="flex justify-between items-start mb-1">
-                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">${log.date} @ ${log.time}</span>
-                <div class="flex gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onclick="modifyLog(${log.id})" class="text-gray-500 hover:text-white text-[10px] uppercase font-bold">Modify</button>
-                    <button onclick="deleteLog(${log.id})" class="text-red-900 hover:text-red-500 text-[10px] uppercase font-bold">Delete</button>
+        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl group animate-in fade-in duration-500">
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">${log.date} | ${log.time}</span>
+                <div class="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="modifyLog(${log.id})" class="text-gray-500 hover:text-white text-[10px] font-bold uppercase">Modify</button>
+                    <button onclick="deleteLog(${log.id})" class="text-red-900 hover:text-red-500 text-[10px] font-bold uppercase">Delete</button>
                 </div>
             </div>
             <p class="text-gray-300 text-sm leading-relaxed">${log.content.replace(/\n/g, '<br>')}</p>
         </div>
     `).join('');
-}
+};
 
-function modifyLog(id) {
+window.modifyLog = function(id) {
     const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
-    const log = logs.find(l => l.id === id);
-    if (log) {
-        document.getElementById('journalInput').value = log.content;
-        deleteLog(id);
+    const logToEdit = logs.find(l => l.id === id);
+    if (logToEdit) {
+        document.getElementById('journalInput').value = logToEdit.content;
+        deleteLog(id); // Remove to "republish"
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-}
+};
 
-function deleteLog(id) {
+window.deleteLog = function(id) {
     let logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
     logs = logs.filter(l => l.id !== id);
     localStorage.setItem('diet_logs', JSON.stringify(logs));
     displayLogs();
-}
+};
 
-function clearInput() {
+window.clearInput = function() {
     document.getElementById('journalInput').value = '';
-}
+};
 </script>
 
 </body>
