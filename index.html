@@ -766,22 +766,23 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// --- NAVIGATION & DIET LOG LOGIC ---
+// --- DIET MODULE LOGIC (Independent of navigateTo) ---
 
 async function loadDietModule(element) {
     const profileView = document.getElementById('profile-view');
     const dynamicView = document.getElementById('dynamic-view');
     
-    // 1. UI: Highlight active sidebar item
+    // 1. Sidebar UI: Only highlight the clicked item
     document.querySelectorAll('.sidebar-item').forEach(item => {
         item.classList.remove('bg-gray-800', 'text-white');
         item.classList.add('text-gray-400');
     });
-    element.classList.add('bg-gray-800', 'text-white');
-    element.classList.remove('text-gray-400');
+    if(element) {
+        element.classList.add('bg-gray-800', 'text-white');
+        element.classList.remove('text-gray-400');
+    }
 
     try {
-        // 2. Fetch from content.html
         const response = await fetch('content.html');
         const text = await response.text();
         const parser = new DOMParser();
@@ -789,14 +790,11 @@ async function loadDietModule(element) {
         const dietSection = doc.getElementById('diet');
 
         if (dietSection && dynamicView) {
-            // 3. SWITCH VIEWS correctly without deleting them
             profileView.classList.add('hidden');
             dynamicView.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${dietSection.innerHTML}</div>`;
             dynamicView.classList.remove('hidden');
             
             document.body.style.backgroundColor = "#000"; 
-
-            // 4. Initialize Date and Logs
             initDietUI();
         }
     } catch (err) {
@@ -810,10 +808,79 @@ function initDietUI() {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         dateDisplay.innerText = new Date().toLocaleDateString(undefined, options);
     }
-    displayLogs();
+    window.displayLogs();
 }
 
-  
+// --- DATA PERSISTENCE & PRE-FILLED LOGS ---
+
+function getLogs() {
+    let logs = JSON.parse(localStorage.getItem('diet_logs'));
+    
+    // If empty, add your Tuesday and Wednesday data automatically
+    if (!logs || logs.length === 0) {
+        logs = [
+            {
+                id: 102,
+                date: "Wednesday, April 8",
+                time: "09:00 PM",
+                content: "• 2 bowls rice, 1 bowl curry, 1 cup rice\n• 10g soya chunks, 5g chana\n• 1 custard meal, 3 roti, 1 cup chai\n• Junk Food: 0"
+            },
+            {
+                id: 101,
+                date: "Tuesday, April 7",
+                time: "10:00 PM",
+                content: "• 1 bowl dal, 1 bowl rice\n• 60-70g soya chunks\n• Custard milk (3 times)\n• 500ml milk\n• Junk Food: 0"
+            }
+        ];
+        localStorage.setItem('diet_logs', JSON.stringify(logs));
+    }
+    return logs;
+}
+
+window.displayLogs = function() {
+    const container = document.getElementById('logHistory');
+    if (!container) return;
+
+    const logs = getLogs();
+    container.innerHTML = logs.map(log => `
+        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl group mb-4">
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">${log.date}</span>
+                <button onclick="deleteLog(${log.id})" class="opacity-0 group-hover:opacity-100 text-red-900 text-[10px] font-bold uppercase transition-opacity">Delete</button>
+            </div>
+            <p class="text-gray-300 text-sm leading-relaxed">${log.content.replace(/\n/g, '<br>')}</p>
+        </div>
+    `).join('');
+};
+
+window.saveLog = function() {
+    const input = document.getElementById('journalInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const logs = getLogs();
+    const newEntry = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        content: text
+    };
+
+    logs.unshift(newEntry);
+    localStorage.setItem('diet_logs', JSON.stringify(logs));
+    input.value = '';
+    displayLogs();
+};
+
+window.deleteLog = function(id) {
+    let logs = getLogs().filter(l => l.id !== id);
+    localStorage.setItem('diet_logs', JSON.stringify(logs));
+    displayLogs();
+};
+
+window.clearInput = function() {
+    document.getElementById('journalInput').value = '';
+};
 </script>
 
 </body>
