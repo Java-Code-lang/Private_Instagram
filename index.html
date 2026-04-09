@@ -55,9 +55,10 @@
   <div class="flex lg:flex-col w-full gap-2">
     <a href="javascript:void(0)" onclick="navigateTo('main')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-house text-xl"></i> <span class="hidden lg:block">Home</span></a>
     
-    <a href="#" class="sidebar-item flex items-center gap-4 p-3 w-full opacity-50 cursor-default"><i class="fa-solid fa-magnifying-glass text-xl"></i> <span class="hidden lg:block">Search</span></a>
+    <a href="javascript:void(0)" onclick="loadYearSummary()"  class="sidebar-item flex items-center gap-4 p-3 w-full opacity-50 cursor-default"><i class="fa-solid fa-magnifying-glass text-xl"></i> <span class="hidden lg:block">Search</span></a>
         
 
+  
     <a href="javascript:void(0)" onclick="navigateTo('diet'); loadDietModule(this);"  class="sidebar-item flex items-center gap-4 p-3 w-full"> <i class="fa-solid fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
 
     <a href="javascript:void(0)" onclick="navigateTo('reels-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Reels</span></a>
@@ -886,6 +887,30 @@ window.deleteLog = function(id) {
 window.clearInput = function() {
     document.getElementById('journalInput').value = '';
 };
+
+  async function loadYearSummary() {
+    const profileView = document.getElementById('profile-view');
+    const dynamicView = document.getElementById('dynamic-view');
+
+    try {
+        const response = await fetch('content.html');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const summarySection = doc.getElementById('year-summary');
+
+        if (summarySection && dynamicView) {
+            profileView.classList.add('hidden');
+            dynamicView.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${summarySection.innerHTML}</div>`;
+            dynamicView.classList.remove('hidden');
+            
+            document.body.style.backgroundColor = "#000"; 
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    } catch (err) {
+        console.error("Fetch Error:", err);
+    }
+}
 </script>
 
 </body>
