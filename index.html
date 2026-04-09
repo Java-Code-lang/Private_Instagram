@@ -766,21 +766,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// --- DIET MODULE LOGIC (Independent of navigateTo) ---
+// --- DIET MODULE LOGIC ---
 
-async function loadDietModule(element) {
+async function loadDietModule() {
     const profileView = document.getElementById('profile-view');
     const dynamicView = document.getElementById('dynamic-view');
-    
-    // 1. Sidebar UI: Only highlight the clicked item
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-        item.classList.remove('bg-gray-800', 'text-white');
-        item.classList.add('text-gray-400');
-    });
-    if(element) {
-        element.classList.add('bg-gray-800', 'text-white');
-        element.classList.remove('text-gray-400');
-    }
 
     try {
         const response = await fetch('content.html');
@@ -790,46 +780,47 @@ async function loadDietModule(element) {
         const dietSection = doc.getElementById('diet');
 
         if (dietSection && dynamicView) {
+            // Hide profile and show the diet section
             profileView.classList.add('hidden');
             dynamicView.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${dietSection.innerHTML}</div>`;
             dynamicView.classList.remove('hidden');
             
+            // Set Dark Mode Background
             document.body.style.backgroundColor = "#000"; 
+            
             initDietUI();
         }
     } catch (err) {
-        console.error("Archive Error:", err);
+        console.error("Archive Error: Ensure you are using Live Server!", err);
     }
 }
 
 function initDietUI() {
     const dateDisplay = document.getElementById('currentDateDisplay');
     if (dateDisplay) {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
         dateDisplay.innerText = new Date().toLocaleDateString(undefined, options);
     }
     window.displayLogs();
 }
 
-// --- DATA PERSISTENCE & PRE-FILLED LOGS ---
+// --- DATA PERSISTENCE & PRE-FILLED SHOWCASE ---
 
 function getLogs() {
     let logs = JSON.parse(localStorage.getItem('diet_logs'));
     
-    // If empty, add your Tuesday and Wednesday data automatically
+    // Automatic Pre-fill for Tuesday and Wednesday Showcase
     if (!logs || logs.length === 0) {
         logs = [
             {
                 id: 102,
                 date: "Wednesday, April 8",
-                time: "09:00 PM",
                 content: "• 2 bowls rice, 1 bowl curry, 1 cup rice\n• 10g soya chunks, 5g chana\n• 1 custard meal, 3 roti, 1 cup chai\n• Junk Food: 0"
             },
             {
                 id: 101,
                 date: "Tuesday, April 7",
-                time: "10:00 PM",
-                content: "• 1 bowl dal, 1 bowl rice\n• 60-70g soya chunks\n• Custard milk (3 times)\n• 500ml milk\n• Junk Food: 0"
+                content: "• 1 bowl dal, 1 bowl rice\n• 60-70g soya chunks\n• Custard milk (3 times), 500ml milk\n• Junk Food: 0"
             }
         ];
         localStorage.setItem('diet_logs', JSON.stringify(logs));
@@ -843,10 +834,13 @@ window.displayLogs = function() {
 
     const logs = getLogs();
     container.innerHTML = logs.map(log => `
-        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl group mb-4">
+        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl mb-4 group transition-all hover:bg-neutral-950">
             <div class="flex justify-between items-start mb-2">
                 <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">${log.date}</span>
-                <button onclick="deleteLog(${log.id})" class="opacity-0 group-hover:opacity-100 text-red-900 text-[10px] font-bold uppercase transition-opacity">Delete</button>
+                <div class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="modifyLog(${log.id})" class="text-gray-500 hover:text-white text-[10px] font-bold uppercase">Modify</button>
+                    <button onclick="deleteLog(${log.id})" class="text-red-900 hover:text-red-500 text-[10px] font-bold uppercase">Delete</button>
+                </div>
             </div>
             <p class="text-gray-300 text-sm leading-relaxed">${log.content.replace(/\n/g, '<br>')}</p>
         </div>
@@ -862,7 +856,6 @@ window.saveLog = function() {
     const newEntry = {
         id: Date.now(),
         date: new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         content: text
     };
 
@@ -870,6 +863,18 @@ window.saveLog = function() {
     localStorage.setItem('diet_logs', JSON.stringify(logs));
     input.value = '';
     displayLogs();
+};
+
+window.modifyLog = function(id) {
+    const logs = getLogs();
+    const logToEdit = logs.find(l => l.id === id);
+    if (logToEdit) {
+        const input = document.getElementById('journalInput');
+        input.value = logToEdit.content;
+        deleteLog(id); // Removes from list so it can be re-published
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        input.focus();
+    }
 };
 
 window.deleteLog = function(id) {
