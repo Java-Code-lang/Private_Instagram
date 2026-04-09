@@ -57,9 +57,9 @@
     
     <a href="#" class="sidebar-item flex items-center gap-4 p-3 w-full opacity-50 cursor-default"><i class="fa-solid fa-magnifying-glass text-xl"></i> <span class="hidden lg:block">Search</span></a>
         
-    <a href="javascript:void(0)" onclick="navigateTo('diet-calculator')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Explore</span></a>
-  
- 
+
+    <a href="javascript:void(0)" onclick="loadDietModule(this)"  class="sidebar-item flex items-center gap-4 p-3 w-full"> <i class="fa-solid fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
+
     <a href="javascript:void(0)" onclick="navigateTo('reels-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Reels</span></a>
     <a href="javascript:void(0)" onclick="navigateTo('messages-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-paper-plane text-xl"></i> <span class="hidden lg:block">Messages</span></a>
     <a href="javascript:void(0)" onclick="navigateTo('dos-donts-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-circle-user text-xl"></i> <span class="hidden lg:block font-bold">Profile</span></a>
@@ -849,7 +849,104 @@ function saveDailyData() {
 document.querySelectorAll('input').forEach(input => {
     input.addEventListener('input', verifyAndCalculate);
 });
+async function loadDietModule(element) {
+    const mainDisplay = document.getElementById('diet'); // Ensure your main div has this ID
+    
+    // 1. Highlight active sidebar item
+    document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('bg-gray-800', 'text-white'));
+    element.classList.add('bg-gray-800', 'text-white');
 
+    try {
+        // 2. Fetch the diet section from content.html
+        const response = await fetch('content.html');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const dietHtml = doc.getElementById('diet').innerHTML;
+
+        // 3. Inject into index.html
+        mainDisplay.innerHTML = dietHtml;
+
+        // 4. Initialize the Log Logic immediately after injection
+        initJournal();
+        
+    } catch (err) {
+        console.error("Failed to load module:", err);
+        mainDisplay.innerHTML = `<div class="p-10 text-red-500 font-mono text-sm">ARCHIVE_ERROR: Could not fetch content.html</div>`;
+    }
+}
+
+function initJournal() {
+    // Set Date
+    const dateDisplay = document.getElementById('currentDateDisplay');
+    if (dateDisplay) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateDisplay.innerText = new Date().toLocaleDateString(undefined, options);
+    }
+    // Render stored logs
+    displayLogs();
+}
+
+// --- CORE LOGIC (Must be in index.html to handle the buttons) ---
+
+function saveLog() {
+    const input = document.getElementById('journalInput');
+    const content = input.value.trim();
+    if (!content) return;
+
+    const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
+    const entry = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        content: content
+    };
+
+    logs.unshift(entry);
+    localStorage.setItem('diet_logs', JSON.stringify(logs));
+    input.value = '';
+    displayLogs();
+}
+
+function displayLogs() {
+    const container = document.getElementById('logHistory');
+    if (!container) return;
+
+    const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
+    container.innerHTML = logs.map(log => `
+        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl mb-4 group animate-fade-in">
+            <div class="flex justify-between items-start mb-1">
+                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">${log.date} @ ${log.time}</span>
+                <div class="flex gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                    <button onclick="modifyLog(${log.id})" class="text-gray-500 hover:text-white text-[10px] uppercase font-bold">Modify</button>
+                    <button onclick="deleteLog(${log.id})" class="text-red-900 hover:text-red-500 text-[10px] uppercase font-bold">Delete</button>
+                </div>
+            </div>
+            <p class="text-gray-300 text-sm leading-relaxed">${log.content.replace(/\n/g, '<br>')}</p>
+        </div>
+    `).join('');
+}
+
+function modifyLog(id) {
+    const logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
+    const log = logs.find(l => l.id === id);
+    if (log) {
+        document.getElementById('journalInput').value = log.content;
+        deleteLog(id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function deleteLog(id) {
+    let logs = JSON.parse(localStorage.getItem('diet_logs') || '[]');
+    logs = logs.filter(l => l.id !== id);
+    localStorage.setItem('diet_logs', JSON.stringify(logs));
+    displayLogs();
+}
+
+function clearInput() {
+    document.getElementById('journalInput').value = '';
+}
 </script>
 
 </body>
