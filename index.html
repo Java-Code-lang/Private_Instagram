@@ -888,7 +888,7 @@ window.clearInput = function() {
     document.getElementById('journalInput').value = '';
 };
 
-  async function loadYearSummary() {
+async function loadYearSummary() {
     const profileView = document.getElementById('profile-view');
     const dynamicView = document.getElementById('dynamic-view');
 
@@ -901,14 +901,15 @@ window.clearInput = function() {
 
         if (summarySection && dynamicView) {
             profileView.classList.add('hidden');
-            dynamicView.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${summarySection.innerHTML}</div>`;
+            // Inject with proper padding for mobile/desktop
+            dynamicView.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto mb-20">${summarySection.innerHTML}</div>`;
             dynamicView.classList.remove('hidden');
             
             document.body.style.backgroundColor = "#000"; 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo(0, 0); // Jump to top of summary
         }
     } catch (err) {
-        console.error("Fetch Error:", err);
+        console.error("Error loading summary:", err);
     }
 }
 </script>
