@@ -59,7 +59,7 @@
         
 
   
-    <a href="javascript:void(0)" onclick="navigateTo('diet'); loadDietModule(this);"  class="sidebar-item flex items-center gap-4 p-3 w-full"> <i class="fa-solid fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
+    <a href="javascript:void(0)" onclick="navigateTo('main')"  class="sidebar-item flex items-center gap-4 p-3 w-full"> <i class="fa-solid fa-compass text-xl"></i> <span class="hidden lg:block">Explore</span></a>
 
     <a href="javascript:void(0)" onclick="navigateTo('reels-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-solid fa-clapperboard text-xl"></i> <span class="hidden lg:block">Reels</span></a>
     <a href="javascript:void(0)" onclick="navigateTo('messages-data')" class="sidebar-item flex items-center gap-4 p-3 w-full"><i class="fa-regular fa-paper-plane text-xl"></i> <span class="hidden lg:block">Messages</span></a>
@@ -767,148 +767,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// --- DIET MODULE LOGIC ---
-// --- 1. CONFIGURATION (Replace with your info) ---
-const VAULT = {
-    token: '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', 
-    owner: 'Java-Code-lang',
-    repo: 'harsh-data-vault',
-    path: 'diet_logs.json'
-};
 
-// --- 2. GITHUB SYNC ENGINE ---
-
-async function syncToVault(logs) {
-    const url = `https://api.github.com/repos/${VAULT.owner}/${VAULT.repo}/contents/${VAULT.path}`;
-    try {
-        const getRes = await fetch(url, { headers: { 'Authorization': `token ${VAULT.token}` } });
-        let sha = "";
-        if (getRes.ok) {
-            const fileData = await getRes.json();
-            sha = fileData.sha;
-        }
-
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(logs, null, 2))));
-        await fetch(url, {
-            method: 'PUT',
-            headers: { 'Authorization': `token ${VAULT.token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: "Archive Sync", content, sha })
-        });
-        console.log("🔒 Vault Updated");
-    } catch (err) { console.error("Sync Failed:", err); }
-}
-
-async function fetchFromVault() {
-    const url = `https://api.github.com/repos/${VAULT.owner}/${VAULT.repo}/contents/${VAULT.path}`;
-    try {
-        const res = await fetch(url, { headers: { 'Authorization': `token ${VAULT.token}` } });
-        if (!res.ok) return;
-        const data = await res.json();
-        const logs = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-        localStorage.setItem('diet_logs', JSON.stringify(logs));
-        displayLogs();
-    } catch (err) { console.log("Offline: Using Local Data"); }
-}
-
-// --- 3. DIET MODULE LOGIC ---
-
-async function loadDietModule() {
-    const profileView = document.getElementById('profile-view');
-    const dynamicView = document.getElementById('dynamic-view');
-
-    try {
-        const response = await fetch('content.html');
-        const text = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, 'text/html');
-        const dietSection = doc.getElementById('diet');
-
-        if (dietSection && dynamicView) {
-            profileView.classList.add('hidden');
-            dynamicView.innerHTML = `<div class="p-4 lg:p-10 max-w-2xl mx-auto">${dietSection.innerHTML}</div>`;
-            dynamicView.classList.remove('hidden');
-            document.body.style.backgroundColor = "#000"; 
-            initDietUI();
-        }
-    } catch (err) {
-        console.error("Archive Error:", err);
-    }
-}
-
-function initDietUI() {
-    const dateDisplay = document.getElementById('currentDateDisplay');
-    if (dateDisplay) {
-        dateDisplay.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-    }
-    displayLogs();
-    fetchFromVault(); // Pushes latest private data to UI
-}
-
-function getLogs() {
-    return JSON.parse(localStorage.getItem('diet_logs')) || [];
-}
-
-window.displayLogs = function() {
-    const container = document.getElementById('logHistory');
-    if (!container) return;
-
-    const logs = getLogs();
-    container.innerHTML = logs.map(log => `
-        <div class="bg-black border-l-2 border-blue-600 p-4 rounded-r-xl mb-4 group transition-all hover:bg-neutral-950">
-            <div class="flex justify-between items-start mb-2">
-                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">${log.date}</span>
-                <div class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="modifyLog(${log.id})" class="text-gray-500 hover:text-white text-[10px] font-bold uppercase">Modify</button>
-                    <button onclick="deleteLog(${log.id})" class="text-red-900 hover:text-red-500 text-[10px] font-bold uppercase">Delete</button>
-                </div>
-            </div>
-            <p class="text-gray-300 text-sm leading-relaxed">${log.content.replace(/\n/g, '<br>')}</p>
-        </div>
-    `).join('');
-};
-
-window.saveLog = async function() {
-    const input = document.getElementById('journalInput');
-    const text = input.value.trim();
-    if (!text) return;
-
-    const logs = getLogs();
-    const newEntry = {
-        id: Date.now(),
-        date: new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
-        content: text
-    };
-
-    logs.unshift(newEntry);
-    localStorage.setItem('diet_logs', JSON.stringify(logs));
-    displayLogs();
-    input.value = '';
-    
-    await syncToVault(logs); // Save to GitHub
-};
-
-window.modifyLog = function(id) {
-    const logs = getLogs();
-    const logToEdit = logs.find(l => l.id === id);
-    if (logToEdit) {
-        document.getElementById('journalInput').value = logToEdit.content;
-        deleteLog(id); 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        document.getElementById('journalInput').focus();
-    }
-};
-
-window.deleteLog = async function(id) {
-    let logs = getLogs().filter(l => l.id !== id);
-    localStorage.setItem('diet_logs', JSON.stringify(logs));
-    displayLogs();
-    
-    await syncToVault(logs); // Update GitHub
-};
-
-window.clearInput = function() {
-    document.getElementById('journalInput').value = '';
-};
 async function loadYearSummary() {
     const profileView = document.getElementById('profile-view');
     const dynamicView = document.getElementById('dynamic-view');
