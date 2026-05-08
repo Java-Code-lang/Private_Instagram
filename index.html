@@ -275,16 +275,36 @@ const posts = [
       { type: "video", src: "insta/Posts/Post 27/Video.mp4" },
       { type: "video", src: "insta/Posts/Post 28/Transition.mp4" },
       { type: "video", src: "insta/Posts/Post 29/Particles.mp4" },
-      { type: "video", src: "insta/Posts/post 30/Diwali.mp4" },
-      { type: "image", src: "insta/F/30/kurta.jpeg" },
-       { type: "video", src: "insta/F/31/Imp New Brahmin.mp4" },
-  {
+      { type: "image", src: "insta/Posts/Post 30/kurta.jpeg" },
+      { type: "video", src: "insta/Posts/Post 31/main.mp4" },
+   {
+  type: "carousel",
+  folder: "insta/Posts/Post 32/",
+  items: [
+    { type: "image", src: "1.JPG" },
+    { type: "image", src: "2.png" },
+    { type: "video", src: "video.mp4" }
+  ]
+},
+      { type: "video", src: "insta/Posts/Post 33/video.mp4" },
+      {
+  type: "carousel",
+  folder: "insta/Posts/Post 34/",
+  items: [
+    { type: "image", src: "1.JPG" },
+    { type: "video", src: "video.mp4" }
+  ]
+},
+   { type: "video", src: "insta/Posts/Post 35/s.mp4" },
+      { type: "video", src: "insta/Posts/Post 36/Diwali.mp4" },
+     {
     type: "multi",
     folder: "insta/F/39/",
     images: ["1.jpeg","2.jpeg","3.jpeg"]
   },
        { type: "image", src: "insta/F/37/MN.jpeg" },
        { type: "image", src: "insta/F/38/Raja.jpeg" },
+     
         
        { type: "image", src: "insta/F/5C/35/russia.jpg" },
         { type: "image", src: "insta/F/5C/36/dubai.jpg" },
@@ -584,7 +604,36 @@ async function openPost(post) {
         prevBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx - 1 + post.videos.length) % post.videos.length; updateVid(); };
         updateVid();
     }
+  // --- CASE 4: CAROUSEL (Mixed Images & Videos) ---
+    else if (post.type === "carousel") {
+        carouselIdx = 0;
+        const updateCarousel = () => {
+            const item = post.items[carouselIdx];
+            img.classList.add("hidden");
+            vid.classList.add("hidden");
+            vid.pause();
+
+            if (item.type === "image") {
+                img.src = post.folder + item.src;
+                img.classList.remove("hidden");
+            } else if (item.type === "video") {
+                vid.src = post.folder + item.src;
+                vid.classList.remove("hidden");
+                vid.muted = musicPlaying;
+                vid.load();
+                vid.play().catch(() => { vid.muted = true; vid.play(); });
+            }
+            prevBtn.classList.toggle("hidden", post.items.length <= 1);
+            nextBtn.classList.toggle("hidden", post.items.length <= 1);
+        };
+        nextBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx + 1) % post.items.length; updateCarousel(); };
+        prevBtn.onclick = (e) => { e.stopPropagation(); carouselIdx = (carouselIdx - 1 + post.items.length) % post.items.length; updateCarousel(); };
+        updateCarousel();
+    }
 }
+
+   
+
 
 // Function for clicking outside the modal
 function closePost(e) {
@@ -694,16 +743,25 @@ function unlockArchive() {
 
     // 2. Collect Posts
     posts.forEach(p => {
+        // Handle Single Image or Video
         if (p.type === 'image' || p.type === 'video') {
             urls.push(p.src);
-        } else if (p.type === 'multi') {
+        } 
+        // Handle Multi-Image (Legacy)
+        else if (p.type === 'multi') {
             p.images.forEach(img => urls.push(p.folder + img));
-        } else if (p.type === 'multiVideo') {
+        } 
+        // Handle Multi-Video
+        else if (p.type === 'multiVideo') {
             if(p.cover) urls.push(p.folder + p.cover);
             p.videos.forEach(v => urls.push(p.folder + v));
         }
+        // --- NEW: Handle Mixed Carousel Items ---
+        else if (p.type === 'carousel') {
+            p.items.forEach(item => urls.push(p.folder + item.src));
+        }
         
-        // Potential song for every post folder
+        // Potential song for every post folder (Auto-music logic)
         const folder = p.folder || (p.src ? p.src.substring(0, p.src.lastIndexOf("/") + 1) : "");
         if(folder) urls.push(folder + "song.mp3");
     });
@@ -711,26 +769,29 @@ function unlockArchive() {
     // 3. Unique & Clean URLs
     const uniqueUrls = [...new Set(urls)].filter(u => u && u.trim() !== "");
     
+    console.log(`📦 Queuing ${uniqueUrls.length} assets for offline access...`);
+    
     // 4. Download and Force-Save to Cache
     for (const url of uniqueUrls) {
         try {
-            // Check if already in cache to save data
+            // Check if already in cache to save data and time
             const alreadyInCache = await caches.match(url);
             if (alreadyInCache) {
                 console.log(`⏩ Already Cached: ${url}`);
                 continue;
             }
 
-            // Fetch with a timeout to prevent hanging
+            // Fetch the asset
             const response = await fetch(url);
             if (response.ok) {
                 await cache.put(url, response.clone());
                 console.log(`✅ Saved to Cache: ${url}`);
             } else if (response.status === 404) {
-                // Ignore missing songs/files silently
+                // Ignore missing background music/optional files
             }
         } catch (e) {
-            // Ignore errors for individual files
+            console.warn(`⚠️ Failed to cache: ${url}`, e);
+            // We ignore errors for individual files to keep the sync moving
         }
     }
     console.log("🏁 Archive Sync Complete. 100% Offline Ready.");
